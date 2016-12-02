@@ -11,14 +11,14 @@ import (
 
 type ParsedArguments struct {
 	CommandInvocation string
-	CommandName string
-	BoxName string
-	BoxDescription string
-	BoxVersion string
-	BoxProvider string
-	ArtifactPath string
-	Backend string
-	Destination string
+	CommandName       string
+	BoxName           string
+	BoxDescription    string
+	BoxVersion        string
+	BoxProvider       string
+	ArtifactPath      string
+	Backend           string
+	Destination       string
 }
 
 func ParseArguments(arguments ...string) (parsed ParsedArguments, err error) {
@@ -31,7 +31,11 @@ func ParseArguments(arguments ...string) (parsed ParsedArguments, err error) {
 	allowedBackends := []string{"copy", "scp"}
 
 	backendIsAllowed := func(testBackend string) bool {
-		for _, allowedBackend := range allowedBackends { if testBackend == allowedBackend {return true} }
+		for _, allowedBackend := range allowedBackends {
+			if testBackend == allowedBackend {
+				return true
+			}
+		}
 		return false
 	}
 
