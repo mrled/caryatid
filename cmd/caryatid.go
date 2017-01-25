@@ -23,8 +23,6 @@ type ParsedArguments struct {
 
 func ParseArguments(arguments ...string) (parsed ParsedArguments, err error) {
 	os.Args = arguments
-
-	extension := flag.String("extension", ".box", "The file extension of the artifact. Passing a file with any other extension will cause the script to fail. For use with packer and vagrant this must be '.box'. (This option is intended mostly for testing.)")
 	flag.Parse()
 
 	reqArgCount := 7
@@ -45,15 +43,14 @@ func ParseArguments(arguments ...string) (parsed ParsedArguments, err error) {
 	}
 
 	parsed = ParsedArguments{os.Args[0], path.Base(os.Args[0]), flag.Arg(0), flag.Arg(1), flag.Arg(2), flag.Arg(3), flag.Arg(4), flag.Arg(5), flag.Arg(6)}
-	fmt.Println(os.Args[0])
-	fmt.Println(path.Base(os.Args[0]))
 
 	if !(backendIsAllowed(parsed.Backend)) {
 		err = errors.New(fmt.Sprintf("Passed a backend of '%v', which is not valid; backends must be one of '%v'", parsed.Backend, allowedBackends))
 		return
 	}
-	if !(strings.HasSuffix(parsed.ArtifactPath, *extension)) {
-		err = errors.New(fmt.Sprintf("Passed an artifact of '%v', which does not have the required extension '%v'", parsed.ArtifactPath, *extension))
+	if !(strings.HasSuffix(parsed.ArtifactPath, ".box")) {
+		// For use with packer and vagrant, the extension of the artifact must be '.box'
+		err = errors.New(fmt.Sprintf("Passed an artifact of '%v', which does not have the required extension '.box'", parsed.ArtifactPath))
 		return
 	}
 
@@ -61,6 +58,7 @@ func ParseArguments(arguments ...string) (parsed ParsedArguments, err error) {
 }
 
 func main() {
+
 	pa, err := ParseArguments(os.Args...)
 	if err != nil {
 		fmt.Println(fmt.Sprintf("ERROR: %v", err))
