@@ -104,7 +104,7 @@ func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog)
 	if version == nil {
 		version = new(Version)
 		version.Version = artifact.Version
-		append(newCatalog.Versions, &version)
+		newCatalog.Versions = append(newCatalog.Versions, *version)
 	}
 
 	var provider *Provider
@@ -117,7 +117,7 @@ func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog)
 	if provider == nil {
 		provider = new(Provider)
 		provider.Name = artifact.Provider
-		append(version.Providers, provider)
+		version.Providers = append(version.Providers, *provider)
 	}
 	provider.Url = artifact.Url
 	provider.ChecksumType = artifact.ChecksumType
@@ -126,22 +126,22 @@ func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog)
 	return
 }
 
-func UnmarshalCatalog(catalogPath) (catalog Catalog, err error) {
+func UnmarshalCatalog(catalogPath string) (catalog Catalog, err error) {
 	if catalogBytes, readerr := ioutil.ReadFile(catalogPath); readerr != nil {
 		if os.IsNotExist(readerr) {
 			catalogBytes = []byte("{}")
+			err = json.Unmarshal(catalogBytes, &catalog)
 		} else {
 			err = readerr
-			return
 		}
 	}
-	err = json.Unmarshal(catalogBytes, &catalog)
 	return
 }
 
 func IngestBox(catalogRoot string, artifact BoxArtifact, backend string) (err error) {
+	var catalog Catalog
 	catalogPath := path.Join(catalogRoot, fmt.Sprintf("%v.json", artifact.Name))
-	if catalog, err := UnmarshallCatalog(catalogPath); err != nil {
+	if catalog, err = UnmarshalCatalog(catalogPath); err != nil {
 		return
 	}
 
