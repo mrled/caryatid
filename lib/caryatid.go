@@ -21,18 +21,138 @@ Here's the JSON of an example catalog:
 */
 package caryatid
 
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+)
+
+// Used in a Version, in a Catalog
 type Provider struct {
 	Name         string `json:"name"`
 	Url          string `json:"url"`
 	ChecksumType string `json:"checksum_type"`
 	Checksum     string `json:"checksum"`
 }
+
+// Used in a Catalog
 type Version struct {
 	Version   string     `json:"version"`
 	Providers []Provider `json:"providers"`
 }
+
+// A catalog keeps track of multiple versions and providers of a single box
 type Catalog struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Versions    []Version `json:"versions"`
+}
+
+// Used to keep track of a box artifact that we have been passed
+type BoxArtifact struct {
+	// The local path for the box
+	Path string
+	// The box name, like "win10x64"
+	Name string
+	// A box description, like "Windows 10, 64-bit"
+	Description string
+	// The version of this artifact, like "1.0.0"
+	Version string
+	// The provider for this artifact, like "virtualbox" or "vmware"
+	Provider string
+	// The final URL for this artifact. May be blank. Will be the final URL that is saved in the catalog for Vagrant to use to fetch this artifact.
+	Url string
+	// The type of checksum e.g. "sha1"
+	ChecksumType string
+	// A hex checksum
+	Checksum string
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
+}
+
+// func AddBoxToCatalog(catalog Catalog, boxUrl string, boxName string, boxDesc string, boxVers string, boxProvider string, checksumType string, checksum string) (newCatalog Catalog) {
+
+func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog) {
+
+	newCatalog = catalog
+
+	if newCatalog.Name == "" {
+		newCatalog.Name = artifact.Name
+	}
+	if newCatalog.Description == "" {
+		newCatalog.Description = artifact.Description
+	}
+
+	var version *Version
+	for _, v := range newCatalog.Versions {
+		if v.Version == artifact.Version {
+			version = &v
+			break
+		}
+	}
+	if version == nil {
+		version = new(Version)
+		version.Version = artifact.Version
+		append(newCatalog.Versions, &version)
+	}
+
+	var provider *Provider
+	for _, p := range version.Providers {
+		if p.Name == artifact.Provider {
+			provider = &p
+			break
+		}
+	}
+	if provider == nil {
+		provider = new(Provider)
+		provider.Name = artifact.Provider
+		append(version.Providers, provider)
+	}
+	provider.Url = artifact.Url
+	provider.ChecksumType = artifact.ChecksumType
+	provider.Checksum = artifact.Checksum
+
+	return
+}
+
+func UnmarshalCatalog(catalogPath) (catalog Catalog, err error) {
+	if catalogBytes, readerr := ioutil.ReadFile(catalogPath); readerr != nil {
+		if os.IsNotExist(readerr) {
+			catalogBytes = []byte("{}")
+		} else {
+			err = readerr
+			return
+		}
+	}
+	err = json.Unmarshal(catalogBytes, &catalog)
+	return
+}
+
+func IngestBox(catalogRoot string, artifact BoxArtifact, backend string) (err error) {
+	catalogPath := path.Join(catalogRoot, fmt.Sprintf("%v.json", artifact.Name))
+	if catalog, err := UnmarshallCatalog(catalogPath); err != nil {
+		return
+	}
+
+	switch backend {
+	case "copy":
+		artifact.Url = fmt.Sprintf("file://%v/%v/%v_%v_%v.box", catalogRoot, artifact.Name, artifact.Name, artifact.Version, artifact.Provider)
+	default:
+		panic("Unknown backend")
+	}
+
+	catalog = AddBoxToCatalog(catalog, artifact)
+
+	return
 }

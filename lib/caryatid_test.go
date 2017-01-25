@@ -44,3 +44,11 @@ func TestJsonDecodingCatalog(t *testing.T) {
 		t.Fatal(fmt.Sprintf("Expected first Provider to have a Name of '%s', but actually had '%s'", "testname", prov.Name))
 	}
 }
+
+func TestJsonDecodingEmptyCatalog(t *testing.T) {
+	var cata Catalog
+	err := json.Unmarshal([]byte("{}"), &cata)
+	if err != nil {
+		t.Fatal("Failed to unmarshal empty catalog with error:", err)
+	}
+}

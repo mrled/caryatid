@@ -58,4 +58,5 @@ func TestArgumentParsing(t *testing.T) {
 
 	// This blows up, I think because flag.Parse() can't be run twice, but ParseArguments calls it
 	// parsed, err = ParseArguments(cmdInv, boxName, boxDesc, boxVers, boxProv, artifact, backend, dest)
+	// TODO: figure out how to test my cli parsing multiple times in one test run, and then add tests that expect failure for bad artifact name (doesn't end in box), nonexistent backends, etc
 }
