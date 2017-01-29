@@ -1,4 +1,4 @@
-package caryatid
+package main
 
 import (
 	"encoding/json"
