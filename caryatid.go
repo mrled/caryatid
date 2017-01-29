@@ -44,9 +44,18 @@ import (
 
 // Hack version: pull it from the filename
 // Final version should open the .box zipfile and extract it: https://www.vagrantup.com/docs/boxes/format.html
-func determineProvider(boxFile string) string {
-	re := regexp.MustCompile(`.*_\(a-zA-Z0-9+\)\.box$`)
-	return re.FindString(boxFile)
+// By default, artifacts emited from the Vagrant post-processor are named packer_{{.BuildName}}_{{.Provider}}.box
+// according to https://www.packer.io/docs/post-processors/vagrant.html
+func determineProvider(boxFile string) (result string, err error) {
+	re := regexp.MustCompile(".*_([[:alnum:]]+).box$")
+	matches := re.FindStringSubmatch(boxFile)
+	if len(matches) != 2 { // matches[0] is always the whole input, if there are any submatches
+		err = fmt.Errorf("Wrong number of matches; expected 1, but found '%v'", len(matches))
+		return
+	} else {
+		result = matches[1]
+		return
+	}
 }
 
 func pathExists(path string) (bool, error) {
@@ -259,12 +268,17 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (ne
 		return
 	}
 
+	provider, err := determineProvider(boxFile)
+	if err != nil {
+		return
+	}
+
 	boxArtifact := BoxArtifact{
 		boxFile,
 		pp.config.Name,
 		pp.config.Description,
 		pp.config.Version,
-		determineProvider(boxFile),
+		provider,
 		pp.config.CatalogRoot,
 		"sha1",
 		digest,

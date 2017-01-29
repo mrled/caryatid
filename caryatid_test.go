@@ -52,3 +52,18 @@ func TestJsonDecodingEmptyCatalog(t *testing.T) {
 		t.Fatal("Failed to unmarshal empty catalog with error:", err)
 	}
 }
+
+func TestDetermineProvider(t *testing.T) {
+	inOutPairs := map[string]string{
+		"/omg/wtf/bbq/packer_BUILDNAME_PROVIDER.box":     "PROVIDER",
+		"/omg/wtf/bbq/packer_MY_BUILD_NAME_PROVIDER.box": "PROVIDER",
+		"file:///C:/packer_BUILDNAME_PROVIDER.box":       "PROVIDER",
+	}
+
+	for input, expectedOutput := range inOutPairs {
+		realOutput, _ := determineProvider(input)
+		if realOutput != expectedOutput {
+			t.Fatal(fmt.Sprintf("For input '%v', expected output to be '%v' but was actually '%v'", input, expectedOutput, realOutput))
+		}
+	}
+}
