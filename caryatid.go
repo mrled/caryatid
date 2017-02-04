@@ -102,11 +102,50 @@ type Version struct {
 	Providers []Provider `json:"providers"`
 }
 
+func (v1 Version) Equals(v2 Version) bool {
+	if &v1 == &v2 {
+		return true
+	}
+	if v1.Version != v2.Version {
+		return false
+	}
+	if len(v1.Providers) != len(v2.Providers) {
+		return false
+	}
+	for idx := 0; idx < len(v1.Providers); idx += 1 {
+		if v1.Providers[idx] != v2.Providers[idx] {
+			return false
+		}
+	}
+	return true
+}
+
 // A catalog keeps track of multiple versions and providers of a single box
 type Catalog struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Versions    []Version `json:"versions"`
+}
+
+func (c1 Catalog) Equals(c2 Catalog) bool {
+	if &c1 == &c2 {
+		return true
+	}
+	if c1.Name != c2.Name {
+		return false
+	}
+	if c1.Description != c2.Description {
+		return false
+	}
+	if len(c1.Versions) != len(c2.Versions) {
+		return false
+	}
+	for idx := 0; idx < len(c1.Versions); idx += 1 {
+		if !c1.Versions[idx].Equals(c2.Versions[idx]) {
+			return false
+		}
+	}
+	return true
 }
 
 // Used to keep track of a box artifact that we have been passed
@@ -133,42 +172,34 @@ type BoxArtifact struct {
 func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog) {
 
 	newCatalog = catalog
+	newCatalog.Name = artifact.Name
+	newCatalog.Description = artifact.Description
 
-	if newCatalog.Name == "" {
-		newCatalog.Name = artifact.Name
-	}
-	if newCatalog.Description == "" {
-		newCatalog.Description = artifact.Description
-	}
+	artifactUrl := fmt.Sprintf("file://%v/%v/%v_%v_%v.box", artifact.CatalogRoot, artifact.Name, artifact.Name, artifact.Version, artifact.Provider)
+	newProvider := Provider{artifact.Provider, artifactUrl, artifact.ChecksumType, artifact.Checksum}
+	newVersion := Version{artifact.Version, []Provider{newProvider}}
 
-	var version *Version
-	for _, v := range newCatalog.Versions {
-		if v.Version == artifact.Version {
-			version = &v
+	foundVersion := false
+	foundProvider := false
+
+	for vidx, _ := range newCatalog.Versions {
+		if newCatalog.Versions[vidx].Version == artifact.Version {
+			foundVersion = true
+			for pidx, _ := range newCatalog.Versions[vidx].Providers {
+				if newCatalog.Versions[vidx].Providers[pidx].Name == artifact.Provider {
+					foundProvider = true
+					break
+				}
+			}
+			if !foundProvider {
+				newCatalog.Versions[vidx].Providers = append(newCatalog.Versions[vidx].Providers, newProvider)
+			}
 			break
 		}
 	}
-	if version == nil {
-		version = new(Version)
-		version.Version = artifact.Version
-		newCatalog.Versions = append(newCatalog.Versions, *version)
+	if !foundVersion {
+		newCatalog.Versions = append(newCatalog.Versions, newVersion)
 	}
-
-	var provider *Provider
-	for _, p := range version.Providers {
-		if p.Name == artifact.Provider {
-			provider = &p
-			break
-		}
-	}
-	if provider == nil {
-		provider = new(Provider)
-		provider.Name = artifact.Provider
-		version.Providers = append(version.Providers, *provider)
-	}
-	provider.Url = fmt.Sprintf("file://%v/%v/%v_%v_%v.box", artifact.CatalogRoot, artifact.Name, artifact.Name, artifact.Version, artifact.Provider)
-	provider.ChecksumType = artifact.ChecksumType
-	provider.Checksum = artifact.Checksum
 
 	return
 }

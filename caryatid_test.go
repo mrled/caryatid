@@ -53,6 +53,41 @@ func TestJsonDecodingEmptyCatalog(t *testing.T) {
 	}
 }
 
+func TestAddBoxToCatalog(t *testing.T) {
+	addBoxSrcPath := "/packer/output/packer-TESTBOX-PROVIDER.box"
+	addBoxName := "TESTBOX"
+	addBoxDesc := "This is a description of TESTBOX"
+	addBoxVers := "2.4.9"
+	addBoxProv := "PROVIDER"
+	addBoxCataRoot := "/catalog/root"
+	addBoxExpectedUrl := fmt.Sprintf("file://%v/%v/%v_%v_%v.box", addBoxCataRoot, addBoxName, addBoxName, addBoxVers, addBoxProv)
+	addBoxCheckType := "CHECKSUMTYPE"
+	addBoxChecksum := "0xDECAFBAD"
+
+	bxArt := BoxArtifact{addBoxSrcPath, addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCataRoot, addBoxCheckType, addBoxChecksum}
+
+	var resultCata, expectedCata Catalog
+
+	resultCata = AddBoxToCatalog(Catalog{}, bxArt)
+	expectedCata = Catalog{addBoxName, addBoxDesc, []Version{
+		Version{addBoxVers, []Provider{
+			Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}}}}
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
+
+	/*	Test to do:
+		Empty catalog
+		Catalog with empty Versions
+		Catalog with other Versions but not the one you're adding
+		Catalog with populated Versions, with the version you're adding, but empty Providers
+		Catalog with populated Versions, with the version you're adding, and other Providers but not the one you're adding
+		Catalog with populated Versions, with the version you're adding, and a Provider that you're adding
+		Catalog with conflicting name/description
+	*/
+
+}
+
 func TestDetermineProvider(t *testing.T) {
 	inOutPairs := map[string]string{
 		"/omg/wtf/bbq/packer_BUILDNAME_PROVIDER.box":     "PROVIDER",
