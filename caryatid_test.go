@@ -66,26 +66,86 @@ func TestAddBoxToCatalog(t *testing.T) {
 
 	bxArt := BoxArtifact{addBoxSrcPath, addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCataRoot, addBoxCheckType, addBoxChecksum}
 
-	var resultCata, expectedCata Catalog
+	var initialCata, resultCata, expectedCata Catalog
 
-	resultCata = AddBoxToCatalog(Catalog{}, bxArt)
+	// The next few tests have the same expected result:
 	expectedCata = Catalog{addBoxName, addBoxDesc, []Version{
 		Version{addBoxVers, []Provider{
 			Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}}}}
+
+	// Empty initial catalog
+	resultCata = AddBoxToCatalog(Catalog{}, bxArt)
 	if !resultCata.Equals(expectedCata) {
 		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
 	}
 
-	/*	Test to do:
-		Empty catalog
-		Catalog with empty Versions
-		Catalog with other Versions but not the one you're adding
-		Catalog with populated Versions, with the version you're adding, but empty Providers
-		Catalog with populated Versions, with the version you're adding, and other Providers but not the one you're adding
-		Catalog with populated Versions, with the version you're adding, and a Provider that you're adding
-		Catalog with conflicting name/description
-	*/
+	// Initial catalog with different name/desc, but otherwise empty
+	resultCata = AddBoxToCatalog(Catalog{"different box name", "different box desc", []Version{}}, bxArt)
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
 
+	// Initial catalog with same name/desc, but otherwise empty
+	resultCata = AddBoxToCatalog(Catalog{addBoxName, addBoxDesc, []Version{}}, bxArt)
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
+
+	// Initial catalog with same name/desc and version, but otherwise empty
+	resultCata = AddBoxToCatalog(
+		Catalog{addBoxName, addBoxDesc, []Version{
+			Version{addBoxVers, []Provider{}}}}, bxArt)
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
+
+	// Initial catalog with same name/desc and version and provider
+	resultCata = AddBoxToCatalog(
+		Catalog{addBoxName, addBoxDesc, []Version{
+			Version{addBoxVers, []Provider{
+				Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}}}}, bxArt)
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
+
+	// Initial catalog with same name/desc and version and same provider with different url/checktype/checksum
+	resultCata = AddBoxToCatalog(
+		Catalog{addBoxName, addBoxDesc, []Version{
+			Version{addBoxVers, []Provider{
+				Provider{addBoxProv, "different box URL", "different checksum type", "different checksum"}}}}}, bxArt)
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
+
+	// The following set of tests will have a different expected catalog
+
+	// Initial catalog with same name/desc and version, and 2 existing different providers
+	initialCata = Catalog{addBoxName, addBoxDesc, []Version{
+		Version{addBoxVers, []Provider{
+			Provider{"anProvider", "anUrl", "anCheckType", "anCheckSum"},
+			Provider{"otherProvider", "otherUrl", "otherCheckType", "otherCheckSum"}}}}}
+	expectedCata = Catalog{addBoxName, addBoxDesc, []Version{
+		Version{addBoxVers, []Provider{
+			Provider{"anProvider", "anUrl", "anCheckType", "anCheckSum"},
+			Provider{"otherProvider", "otherUrl", "otherCheckType", "otherCheckSum"},
+			Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}}}}
+	resultCata = AddBoxToCatalog(initialCata, bxArt)
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
+
+	// Initial catalog with same name/desc and 2 different versions
+	initialCata = Catalog{addBoxName, addBoxDesc, []Version{
+		Version{"1.2.3", []Provider{Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}},
+		Version{"5.2.4", []Provider{Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}}}}
+	expectedCata = Catalog{addBoxName, addBoxDesc, []Version{
+		Version{"1.2.3", []Provider{Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}},
+		Version{"5.2.4", []Provider{Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}},
+		Version{addBoxVers, []Provider{Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum}}}}}
+	resultCata = AddBoxToCatalog(initialCata, bxArt)
+	if !resultCata.Equals(expectedCata) {
+		t.Fatal(fmt.Sprintf("Result catalog did not match expected catalog\n\t%v\n\t%v", resultCata, expectedCata))
+	}
 }
 
 func TestDetermineProvider(t *testing.T) {

@@ -187,6 +187,9 @@ func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog)
 			foundVersion = true
 			for pidx, _ := range newCatalog.Versions[vidx].Providers {
 				if newCatalog.Versions[vidx].Providers[pidx].Name == artifact.Provider {
+					newCatalog.Versions[vidx].Providers[pidx].Url = artifactUrl
+					newCatalog.Versions[vidx].Providers[pidx].ChecksumType = artifact.ChecksumType
+					newCatalog.Versions[vidx].Providers[pidx].Checksum = artifact.Checksum
 					foundProvider = true
 					break
 				}
