@@ -148,7 +148,10 @@ func (c1 Catalog) Equals(c2 Catalog) bool {
 	return true
 }
 
+const BuilderId = "com.micahrl.caryatid"
+
 // Used to keep track of a box artifact that we have been passed
+// Implements the packer.Artifact interface
 type BoxArtifact struct {
 	// The *local* path for the box - not the final path after we copy the box to the server, but where the artifact is right now
 	Path string
@@ -166,6 +169,30 @@ type BoxArtifact struct {
 	ChecksumType string
 	// A hex checksum
 	Checksum string
+}
+
+func (*BoxArtifact) BuilderId() string {
+	return BuilderId
+}
+
+func (bxart *BoxArtifact) Files() []string {
+	return nil
+}
+
+func (bxart *BoxArtifact) Id() string {
+	return fmt.Sprintf("%s/%s/%s", bxart.Name, bxart.Provider, bxart.Version)
+}
+
+func (bxart *BoxArtifact) String() string {
+	return fmt.Sprintf("%s/%s (v. %d)", bxart.Name, bxart.Provider, bxart.Version)
+}
+
+func (*BoxArtifact) State(name string) interface{} {
+	return nil
+}
+
+func (art *BoxArtifact) Destroy() error {
+	return nil
 }
 
 // Given a BoxArtifact metadata object and a Catalog object representing the contents of a Vagrant JSON catalog,
@@ -219,43 +246,26 @@ func UnmarshalCatalog(catalogPath string) (catalog Catalog, err error) {
 	return
 }
 
-// // Add a reference to a box file to a catalog
-// func IngestBox(catalogRoot string, artifact BoxArtifact, backend string) (err error) {
-// 	var catalog Catalog
-// 	catalogPath := path.Join(catalogRoot, fmt.Sprintf("%v.json", artifact.Name))
-// 	if catalog, err = UnmarshalCatalog(catalogPath); err != nil {
-// 		return
-// 	}
-
-// 	switch backend {
-// 	case "copy":
-// 		∑
-// 	default:
-// 		panic("Unknown backend")
-// 	}
-
-// 	catalog = AddBoxToCatalog(catalog, artifact)
-
-// 	return
-// }
-
 //// Packer's PostProcessor interface methods
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 
 	// A name for the Vagrant box
-	Name string
+	Name string `mapstructure:"name"`
 
 	// The version for the current artifact
-	Version string
+	Version string `mapstructure:"version"`
 
 	// A short description for the Vagrant box
-	Description string
+	Description string `mapstructure:"description"`
 
 	// The root path for a Vagrant catalog
 	// If the catalog URL is file:///tmp/mybox.json, CatalogRoot is "file:///tmp" and the Name is "mybox"
-	CatalogRoot string
+	CatalogRoot string `mapstructure:"catalog_root_url"`
+
+	// Whether to keep the input artifact
+	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`
 
 	ctx interpolate.Context
 }
@@ -277,16 +287,18 @@ func (pp *PostProcessor) Configure(raws ...interface{}) error {
 	}
 
 	if pp.config.Version == "" {
-		return fmt.Errorf("Version equired")
+		return fmt.Errorf("Version required")
 	}
 	if pp.config.CatalogRoot == "" {
-		return fmt.Errorf("CatalogRoot equired")
+		return fmt.Errorf("CatalogRoot required")
 	}
 
 	return nil
 }
 
-func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (newArtifact packer.Artifact, keepOldArtifact bool, err error) {
+func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (boxArtifact BoxArtifact, keepInputArtifact bool, err error) {
+
+	keepInputArtifact = pp.config.KeepInputArtifact
 
 	// Sanity check the artifact we were passed
 	if len(artifact.Files()) != 1 {
@@ -299,15 +311,17 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (ne
 
 	digest, err := sha1sum(boxFile)
 	if err != nil {
+		fmt.Errorf("sha1sum failed for box file '%v' with error %v", boxFile, err)
 		return
 	}
 
 	provider, err := determineProvider(boxFile)
 	if err != nil {
+		fmt.Errorf("Could not determine provider from the filename for box file '%v'; got error %v", boxFile, err)
 		return
 	}
 
-	boxArtifact := BoxArtifact{
+	boxArtifact = BoxArtifact{
 		boxFile,
 		pp.config.Name,
 		pp.config.Description,
@@ -327,8 +341,5 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (ne
 	log.Println(catalog)
 
 	// TODO: save the catalog and copy the artifact file
-
-	// TODO: not sure how to handle keepOldArtifact (do I have to handle it myself?)
-	// TODO: create a new packer.Artifact, don't just return the old one
-	return artifact, true, err
+	return
 }
