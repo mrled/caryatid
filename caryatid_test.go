@@ -59,8 +59,8 @@ func TestAddBoxToCatalog(t *testing.T) {
 	addBoxDesc := "This is a description of TESTBOX"
 	addBoxVers := "2.4.9"
 	addBoxProv := "PROVIDER"
-	addBoxCataRoot := "/catalog/root"
-	addBoxExpectedUrl := fmt.Sprintf("file://%v/%v/%v_%v_%v.box", addBoxCataRoot, addBoxName, addBoxName, addBoxVers, addBoxProv)
+	addBoxCataRoot := "file:///catalog/root"
+	addBoxExpectedUrl := fmt.Sprintf("%v/%v/%v_%v_%v.box", addBoxCataRoot, addBoxName, addBoxName, addBoxVers, addBoxProv)
 	addBoxCheckType := "CHECKSUMTYPE"
 	addBoxChecksum := "0xDECAFBAD"
 

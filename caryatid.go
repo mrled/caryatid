@@ -204,7 +204,7 @@ func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog)
 	newCatalog.Name = artifact.Name
 	newCatalog.Description = artifact.Description
 
-	artifactUrl := fmt.Sprintf("file://%v/%v/%v_%v_%v.box", artifact.CatalogRoot, artifact.Name, artifact.Name, artifact.Version, artifact.Provider)
+	artifactUrl := fmt.Sprintf("%v/%v/%v_%v_%v.box", artifact.CatalogRoot, artifact.Name, artifact.Name, artifact.Version, artifact.Provider)
 	newProvider := Provider{artifact.Provider, artifactUrl, artifact.ChecksumType, artifact.Checksum}
 	newVersion := Version{artifact.Version, []Provider{newProvider}}
 

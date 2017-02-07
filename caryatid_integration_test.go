@@ -63,4 +63,5 @@ func TestPostProcess(t *testing.T) {
 		// t.Fatal(fmt.Sprint("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, boxArt.Checksum))
 		t.Fatal("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, boxArt.Checksum)
 	}
+
 }
