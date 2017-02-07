@@ -47,6 +47,7 @@ func TestPostProcess(t *testing.T) {
 		t.Fatal("Error trying to create test directory: ", err)
 	}
 	defer os.RemoveAll(testdir)
+
 	err = ioutil.WriteFile(testArtifactPath, []byte(testArtifactContents), 0600)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error trying to write file: ", err))
@@ -61,8 +62,7 @@ func TestPostProcess(t *testing.T) {
 		t.Fatal(fmt.Sprintf("Failed to keep input consistently"))
 	}
 	if boxArt.Checksum != testArtifactSha1Sum {
-		// t.Fatal(fmt.Sprint("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, boxArt.Checksum))
-		t.Fatal("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, boxArt.Checksum)
+		t.Fatal(fmt.Sprintf("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, boxArt.Checksum))
 	}
 
 	expectedCatalogData := `{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file:///Users/mrled/Documents/Go/src/github.com/mrled/packer-post-processor-caryatid/integration_test/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"78bc8a542fa84494ff14ae412196d134c603960c"}]}]}`
@@ -73,5 +73,18 @@ func TestPostProcess(t *testing.T) {
 	}
 	if string(testCatalogData) != expectedCatalogData {
 		t.Fatal("Catalog data did not match expectations", testCatalogData, expectedCatalogData)
+	}
+
+	origDigest, err := sha1sum(testArtifactPath)
+	if err != nil {
+		t.Fatal("Failed to calculate sha1sum of ", testArtifactPath)
+	}
+	copiedBoxPath := path.Join(testdir, testBoxName, fmt.Sprintf("%v_%v_%v.box", testBoxName, pp.config.Version, testProviderName))
+	copiedDigest, err := sha1sum(copiedBoxPath)
+	if err != nil {
+		t.Fatal("Failed to calculate sha1sum of ", copiedBoxPath)
+	}
+	if copiedDigest != origDigest {
+		t.Fatal(fmt.Sprintf("Copying %v to %v failed... files are not identical", testArtifactPath, copiedBoxPath))
 	}
 }

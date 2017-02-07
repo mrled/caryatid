@@ -89,6 +89,25 @@ func sha1sum(filePath string) (result string, err error) {
 	return
 }
 
+func copyFile(src string, dst string) (written int64, err error) {
+	in, err := os.Open(src)
+	defer in.Close()
+	if err != nil {
+		return
+	}
+	out, err := os.Create(dst)
+	defer out.Close()
+	if err != nil {
+		return
+	}
+	written, err = io.Copy(out, in)
+	if err != nil {
+		return
+	}
+	err = out.Close()
+	return
+}
+
 //// External interface
 
 // Used in a Version, in a Catalog
@@ -307,36 +326,54 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 			len(artifact.Files()))
 		return
 	}
-	boxFile := artifact.Files()[0]
-	if !strings.HasSuffix(boxFile, ".box") {
-		err = fmt.Errorf("Box file '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", boxFile)
+	inBoxFile := artifact.Files()[0]
+	if !strings.HasSuffix(inBoxFile, ".box") {
+		err = fmt.Errorf("Box file '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", inBoxFile)
 		return
 	}
-	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", boxFile))
+	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", inBoxFile))
 
 	var digest string
-	digest, err = sha1sum(boxFile)
+	digest, err = sha1sum(inBoxFile)
 	if err != nil {
-		fmt.Errorf("sha1sum failed for box file '%v' with error %v", boxFile, err)
+		log.Println("sha1sum failed for box file '%v' with error %v", inBoxFile, err)
 		return
 	}
 	log.Println(fmt.Sprintf("Found SHA1 hash for file: '%v'", digest))
 
-	provider, err := determineProvider(boxFile)
+	provider, err := determineProvider(inBoxFile)
 	if err != nil {
-		fmt.Errorf("Could not determine provider from the filename for box file '%v'; got error %v", boxFile, err)
+		log.Println("Could not determine provider from the filename for box file '%v'; got error %v", inBoxFile, err)
 		return
 	}
 	log.Println(fmt.Sprintf("Determined provider as '%v'", provider))
 
 	catalogRootUrl, err := url.Parse(pp.config.CatalogRoot)
 	if err != nil {
-		fmt.Errorf("Could not parse CatalogRoot URL of '%v'", pp.config.CatalogRoot)
+		log.Println("Could not parse CatalogRoot URL of '%v'", pp.config.CatalogRoot)
+		return
+	}
+	catalogRootPath := catalogRootUrl.Path
+	boxDir := path.Join(catalogRootPath, pp.config.Name)
+
+	// TODO: should do something more sensible than an unchangeable world-readable directory here
+	err = os.MkdirAll(boxDir, 0700)
+	if err != nil {
+		log.Println("Error trying to create the box directory: ", err)
 		return
 	}
 
+	boxPath := path.Join(boxDir, fmt.Sprintf("%v_%v_%v.box", pp.config.Name, pp.config.Version, provider))
+	boxUrl, err := url.Parse(catalogRootUrl.String())
+	if err != nil {
+		log.Println("Unexpected error trying to copy catalog URL")
+		return
+	}
+	boxUrl.Path = boxPath
+	// catalogUrl = fmt.Sprintf("%v/", catalogRootUrl.String())
+
 	boxArtifact = BoxArtifact{
-		boxFile,
+		inBoxFile,
 		pp.config.Name,
 		pp.config.Description,
 		pp.config.Version,
@@ -347,17 +384,20 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 	}
 
 	var catalog Catalog
-	catalogPath := path.Join(catalogRootUrl.Path, fmt.Sprintf("%v.json", boxArtifact.Name))
+	catalogPath := path.Join(catalogRootPath, fmt.Sprintf("%v.json", boxArtifact.Name))
 	log.Println(fmt.Sprintf("Using catalog path of '%v'", catalogPath))
 
 	catalogBytes, err := ioutil.ReadFile(catalogPath)
 	if os.IsNotExist(err) {
+		log.Println("No file at '%v'; starting with empty catalog", catalogPath)
 		catalogBytes = []byte("{}")
 	} else if err != nil {
+		log.Println("Error trying to read catalog: ", err)
 		return
 	}
 
 	if err = json.Unmarshal(catalogBytes, &catalog); err != nil {
+		log.Println("Error trying to unmarshal catalog: ", err)
 		return
 	}
 
@@ -366,12 +406,22 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 
 	jsonData, err := json.Marshal(catalog)
 	if err != nil {
+		log.Println("Error trying to marshal catalog: ", err)
 		return
 	}
 	err = ioutil.WriteFile(catalogPath, jsonData, permission)
 	if err != nil {
+		log.Println("Error trying to write catalog: ", err)
 		return
 	}
+	log.Println(fmt.Sprintf("Catalog updated on disk to reflect new value"))
+
+	written, err := copyFile(inBoxFile, boxPath)
+	if err != nil {
+		log.Println(fmt.Sprintf("Error trying to copy '%v' to '%v' file: %v", inBoxFile, boxPath, err))
+		return
+	}
+	log.Println(fmt.Sprintf("Copied %v bytes from original path at '%v' to new location at '%v'", written, inBoxFile, boxPath))
 
 	return
 }
