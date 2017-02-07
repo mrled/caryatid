@@ -30,9 +30,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/mitchellh/packer/common"
 	"github.com/mitchellh/packer/helper/config"
@@ -267,6 +269,9 @@ type Config struct {
 	// Whether to keep the input artifact
 	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`
 
+	// When true, do not attempt to actually read from files returned by artifact.Files()
+	Testing bool
+
 	ctx interpolate.Context
 }
 
@@ -308,16 +313,31 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 		return
 	}
 	boxFile := artifact.Files()[0]
-
-	digest, err := sha1sum(boxFile)
-	if err != nil {
-		fmt.Errorf("sha1sum failed for box file '%v' with error %v", boxFile, err)
+	if !strings.HasSuffix(boxFile, ".box") {
+		err = fmt.Errorf("Box file '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", boxFile)
 		return
+	}
+
+	var digest string
+	if !pp.config.Testing {
+		digest, err = sha1sum(boxFile)
+		if err != nil {
+			fmt.Errorf("sha1sum failed for box file '%v' with error %v", boxFile, err)
+			return
+		}
+	} else {
+		digest = "TestSha1Value"
 	}
 
 	provider, err := determineProvider(boxFile)
 	if err != nil {
 		fmt.Errorf("Could not determine provider from the filename for box file '%v'; got error %v", boxFile, err)
+		return
+	}
+
+	catalogRootUrl, err := url.Parse(pp.config.CatalogRoot)
+	if err != nil {
+		fmt.Errorf("Could not parse CatalogRoot URL of '%v'", pp.config.CatalogRoot)
 		return
 	}
 
@@ -333,7 +353,7 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 	}
 
 	var catalog Catalog
-	catalogPath := path.Join(pp.config.CatalogRoot, fmt.Sprintf("%v.json", boxArtifact.Name))
+	catalogPath := path.Join(catalogRootUrl.Path, fmt.Sprintf("%v.json", boxArtifact.Name))
 	if catalog, err = UnmarshalCatalog(catalogPath); err != nil {
 		return
 	}

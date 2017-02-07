@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/mitchellh/packer/packer"
 )
 
 func TestJsonDecodingProvider(t *testing.T) {
@@ -160,5 +162,25 @@ func TestDetermineProvider(t *testing.T) {
 		if realOutput != expectedOutput {
 			t.Fatal(fmt.Sprintf("For input '%v', expected output to be '%v' but was actually '%v'", input, expectedOutput, realOutput))
 		}
+	}
+}
+
+func TestPostProcess(t *testing.T) {
+	ui := &packer.BasicUi{}
+	inartifact := &packer.MockArtifact{FilesValue: []string{"TestFileName_TestProviderName.box"}}
+	pp := PostProcessor{}
+	inkeepinput := false
+	pp.config.CatalogRoot = "test:///path/to/catalogroot"
+	pp.config.Description = "Test box description"
+	pp.config.KeepInputArtifact = inkeepinput
+	pp.config.Name = "Test box name"
+	pp.config.Version = "6.6.6"
+	pp.config.Testing = true
+	_, keepinputresult, err := pp.PostProcess(ui, inartifact)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Error during PostProcess(): %v", err))
+	}
+	if keepinputresult != inkeepinput {
+		t.Fatal(fmt.Sprintf("Failed to keep input consistently"))
 	}
 }
