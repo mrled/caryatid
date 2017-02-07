@@ -269,9 +269,6 @@ type Config struct {
 	// Whether to keep the input artifact
 	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`
 
-	// When true, do not attempt to actually read from files returned by artifact.Files()
-	Testing bool
-
 	ctx interpolate.Context
 }
 
@@ -317,23 +314,22 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 		err = fmt.Errorf("Box file '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", boxFile)
 		return
 	}
+	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", boxFile))
 
 	var digest string
-	if !pp.config.Testing {
-		digest, err = sha1sum(boxFile)
-		if err != nil {
-			fmt.Errorf("sha1sum failed for box file '%v' with error %v", boxFile, err)
-			return
-		}
-	} else {
-		digest = "TestSha1Value"
+	digest, err = sha1sum(boxFile)
+	if err != nil {
+		fmt.Errorf("sha1sum failed for box file '%v' with error %v", boxFile, err)
+		return
 	}
+	log.Println(fmt.Sprintf("Found SHA1 hash for file: '%v'", digest))
 
 	provider, err := determineProvider(boxFile)
 	if err != nil {
 		fmt.Errorf("Could not determine provider from the filename for box file '%v'; got error %v", boxFile, err)
 		return
 	}
+	log.Println(fmt.Sprintf("Determined provider as '%v'", provider))
 
 	catalogRootUrl, err := url.Parse(pp.config.CatalogRoot)
 	if err != nil {
@@ -354,11 +350,12 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 
 	var catalog Catalog
 	catalogPath := path.Join(catalogRootUrl.Path, fmt.Sprintf("%v.json", boxArtifact.Name))
+	log.Println(fmt.Sprintf("Using catalog path of '%v'", catalogPath))
 	if catalog, err = UnmarshalCatalog(catalogPath); err != nil {
 		return
 	}
 	catalog = AddBoxToCatalog(catalog, boxArtifact)
-	log.Println(catalog)
+	log.Println(fmt.Sprintf("Catalog updated; new value is:\n%v", catalog))
 
 	// TODO: save the catalog and copy the artifact file
 	return
