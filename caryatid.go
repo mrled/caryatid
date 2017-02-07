@@ -34,6 +34,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/mitchellh/packer/common"
@@ -236,18 +237,6 @@ func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog)
 	return
 }
 
-func UnmarshalCatalog(catalogPath string) (catalog Catalog, err error) {
-	if catalogBytes, readerr := ioutil.ReadFile(catalogPath); readerr != nil {
-		if os.IsNotExist(readerr) {
-			catalogBytes = []byte("{}")
-			err = json.Unmarshal(catalogBytes, &catalog)
-		} else {
-			err = readerr
-		}
-	}
-	return
-}
-
 //// Packer's PostProcessor interface methods
 
 type Config struct {
@@ -268,6 +257,9 @@ type Config struct {
 
 	// Whether to keep the input artifact
 	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`
+
+	// A string representing an os.FileMode object
+	Permission string `mapstructure:"permission"`
 
 	ctx interpolate.Context
 }
@@ -301,6 +293,12 @@ func (pp *PostProcessor) Configure(raws ...interface{}) error {
 func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (boxArtifact BoxArtifact, keepInputArtifact bool, err error) {
 
 	keepInputArtifact = pp.config.KeepInputArtifact
+	permUint64, err := strconv.ParseUint(pp.config.Permission, 8, 32)
+	if permUint64 == 0 {
+		permUint64 = 0600
+	}
+	permission := os.FileMode(permUint64)
+	log.Println(fmt.Sprintf("Using mode '%v' for output catalog file", permission))
 
 	// Sanity check the artifact we were passed
 	if len(artifact.Files()) != 1 {
@@ -351,12 +349,29 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 	var catalog Catalog
 	catalogPath := path.Join(catalogRootUrl.Path, fmt.Sprintf("%v.json", boxArtifact.Name))
 	log.Println(fmt.Sprintf("Using catalog path of '%v'", catalogPath))
-	if catalog, err = UnmarshalCatalog(catalogPath); err != nil {
+
+	catalogBytes, err := ioutil.ReadFile(catalogPath)
+	if os.IsNotExist(err) {
+		catalogBytes = []byte("{}")
+	} else if err != nil {
 		return
 	}
+
+	if err = json.Unmarshal(catalogBytes, &catalog); err != nil {
+		return
+	}
+
 	catalog = AddBoxToCatalog(catalog, boxArtifact)
 	log.Println(fmt.Sprintf("Catalog updated; new value is:\n%v", catalog))
 
-	// TODO: save the catalog and copy the artifact file
+	jsonData, err := json.Marshal(catalog)
+	if err != nil {
+		return
+	}
+	err = ioutil.WriteFile(catalogPath, jsonData, permission)
+	if err != nil {
+		return
+	}
+
 	return
 }

@@ -24,10 +24,11 @@ func TestPostProcess(t *testing.T) {
 	fmt.Println(fmt.Sprintf("Detected running the test directory as '%v'", thisdir))
 	testdir := path.Join(thisdir, "integration_test")
 
+	testBoxName := "TestBoxName"
 	testArtifactContents := "This is a test artifact"
 	testArtifactSha1Sum := "78bc8a542fa84494ff14ae412196d134c603960c"
 	testProviderName := "TestProvider"
-	testArtifactFilename := fmt.Sprintf("TestArtifact_%v.box", testProviderName)
+	testArtifactFilename := fmt.Sprintf("%v_%v.box", testBoxName, testProviderName)
 	testArtifactPath := path.Join(testdir, testArtifactFilename)
 	ui := &packer.BasicUi{}
 	inartifact := &packer.MockArtifact{FilesValue: []string{testArtifactPath}}
@@ -37,7 +38,7 @@ func TestPostProcess(t *testing.T) {
 	pp.config.CatalogRoot = fmt.Sprintf("file://%v", testdir)
 	pp.config.Description = "Test box description"
 	pp.config.KeepInputArtifact = inkeepinput
-	pp.config.Name = "TestBoxName"
+	pp.config.Name = testBoxName
 	pp.config.Version = "6.6.6"
 
 	// Set up test: write files etc
@@ -64,4 +65,13 @@ func TestPostProcess(t *testing.T) {
 		t.Fatal("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, boxArt.Checksum)
 	}
 
+	expectedCatalogData := `{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file:///Users/mrled/Documents/Go/src/github.com/mrled/packer-post-processor-caryatid/integration_test/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"78bc8a542fa84494ff14ae412196d134c603960c"}]}]}`
+	testCatalogPath := path.Join(testdir, fmt.Sprintf("%v.json", testBoxName))
+	testCatalogData, err := ioutil.ReadFile(testCatalogPath)
+	if err != nil {
+		t.Fatal("Error trying to read the test catalog: ", err)
+	}
+	if string(testCatalogData) != expectedCatalogData {
+		t.Fatal("Catalog data did not match expectations", testCatalogData, expectedCatalogData)
+	}
 }
