@@ -41,6 +41,7 @@ This can be consumed in a Vagrant file by using the JSON catalog as the box URL 
 
     config.vm.box_url = "file:///srv/vagrant/testbox.json"
 
+Files created by Caryatid honor the user's `umask`.
 
 ## Roadmap / wishlist
 

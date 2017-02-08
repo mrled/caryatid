@@ -54,7 +54,7 @@ func TestPostProcess(t *testing.T) {
 	pp.config.Version = "6.6.6"
 
 	// Set up test: write files etc
-	err = os.MkdirAll(integrationTestDir, 0700)
+	err = os.MkdirAll(integrationTestDir, 0777)
 	if err != nil {
 		t.Fatal("Error trying to create test directory: ", err)
 	}
@@ -64,7 +64,7 @@ func TestPostProcess(t *testing.T) {
 		defer os.RemoveAll(integrationTestDir)
 	}
 
-	err = ioutil.WriteFile(testArtifactPath, []byte(testArtifactContents), 0600)
+	err = ioutil.WriteFile(testArtifactPath, []byte(testArtifactContents), 0666)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error trying to write file: ", err))
 	}

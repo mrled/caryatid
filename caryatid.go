@@ -34,7 +34,6 @@ import (
 	"os"
 	"path"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/mitchellh/packer/common"
@@ -277,9 +276,6 @@ type Config struct {
 	// Whether to keep the input artifact
 	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`
 
-	// A string representing an os.FileMode object
-	Permission string `mapstructure:"permission"`
-
 	ctx interpolate.Context
 }
 
@@ -312,12 +308,6 @@ func (pp *CaryatidPostProcessor) Configure(raws ...interface{}) error {
 func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (outArtifact packer.Artifact, keepInputArtifact bool, err error) {
 
 	keepInputArtifact = pp.config.KeepInputArtifact
-	permUint64, err := strconv.ParseUint(pp.config.Permission, 8, 32)
-	if permUint64 == 0 {
-		permUint64 = 0600
-	}
-	permission := os.FileMode(permUint64)
-	log.Println(fmt.Sprintf("Using mode '%v' for output catalog file", permission))
 
 	// Sanity check the artifact we were passed
 	if len(artifact.Files()) != 1 {
@@ -357,7 +347,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	boxDir := path.Join(catalogRootPath, pp.config.Name)
 
 	// TODO: should do something more sensible than an unchangeable world-readable directory here
-	err = os.MkdirAll(boxDir, 0700)
+	err = os.MkdirAll(boxDir, 0777)
 	if err != nil {
 		log.Println("Error trying to create the box directory: ", err)
 		return
@@ -410,7 +400,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		log.Println("Error trying to marshal catalog: ", err)
 		return
 	}
-	err = ioutil.WriteFile(catalogPath, jsonData, permission)
+	err = ioutil.WriteFile(catalogPath, jsonData, 0666)
 	if err != nil {
 		log.Println("Error trying to write catalog: ", err)
 		return
