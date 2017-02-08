@@ -87,14 +87,15 @@ func TestPostProcess(t *testing.T) {
 	// 	t.Fatal(fmt.Sprintf("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, outArt.Checksum))
 	// }
 
-	expectedCatalogData := `{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file:///Users/mrled/Documents/Go/src/github.com/mrled/packer-post-processor-caryatid/integration_test/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"78bc8a542fa84494ff14ae412196d134c603960c"}]}]}`
+	expectedCatalogStr := `{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file:///Users/mrled/Documents/Go/src/github.com/mrled/packer-post-processor-caryatid/integration_test/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"78bc8a542fa84494ff14ae412196d134c603960c"}]}]}`
 	testCatalogPath := path.Join(integrationTestDir, fmt.Sprintf("%v.json", testBoxName))
 	testCatalogData, err := ioutil.ReadFile(testCatalogPath)
+	testCatalogStr := string(testCatalogData)
 	if err != nil {
 		t.Fatal("Error trying to read the test catalog: ", err)
 	}
-	if string(testCatalogData) != expectedCatalogData {
-		t.Fatal("Catalog data did not match expectations", testCatalogData, expectedCatalogData)
+	if string(testCatalogStr) != expectedCatalogStr {
+		t.Fatal("Catalog data did not match expectations", testCatalogStr, expectedCatalogStr)
 	}
 
 	origDigest, err := sha1sum(testArtifactPath)
