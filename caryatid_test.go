@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/mitchellh/packer/packer"
 )
 
 func TestJsonDecodingProvider(t *testing.T) {
@@ -161,4 +163,8 @@ func TestDetermineProvider(t *testing.T) {
 			t.Fatal(fmt.Sprintf("For input '%v', expected output to be '%v' but was actually '%v'", input, expectedOutput, realOutput))
 		}
 	}
+}
+
+func TestPostProcessor_ImplementsPostProcessor(t *testing.T) {
+	var _ packer.PostProcessor = new(CaryatidPostProcessor)
 }

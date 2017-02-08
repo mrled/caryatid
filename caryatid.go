@@ -283,11 +283,11 @@ type Config struct {
 	ctx interpolate.Context
 }
 
-type PostProcessor struct {
+type CaryatidPostProcessor struct {
 	config Config
 }
 
-func (pp *PostProcessor) Configure(raws ...interface{}) error {
+func (pp *CaryatidPostProcessor) Configure(raws ...interface{}) error {
 	err := config.Decode(
 		&pp.config,
 		&config.DecodeOpts{
@@ -309,7 +309,7 @@ func (pp *PostProcessor) Configure(raws ...interface{}) error {
 	return nil
 }
 
-func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (boxArtifact BoxArtifact, keepInputArtifact bool, err error) {
+func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (outArtifact packer.Artifact, keepInputArtifact bool, err error) {
 
 	keepInputArtifact = pp.config.KeepInputArtifact
 	permUint64, err := strconv.ParseUint(pp.config.Permission, 8, 32)
@@ -372,7 +372,7 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 	boxUrl.Path = boxPath
 	// catalogUrl = fmt.Sprintf("%v/", catalogRootUrl.String())
 
-	boxArtifact = BoxArtifact{
+	boxArtifact := BoxArtifact{
 		inBoxFile,
 		pp.config.Name,
 		pp.config.Description,
@@ -382,6 +382,7 @@ func (pp *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (bo
 		"sha1",
 		digest,
 	}
+	outArtifact = &boxArtifact
 
 	var catalog Catalog
 	catalogPath := path.Join(catalogRootPath, fmt.Sprintf("%v.json", boxArtifact.Name))

@@ -26,13 +26,12 @@ func TestPostProcess(t *testing.T) {
 
 	testBoxName := "TestBoxName"
 	testArtifactContents := "This is a test artifact"
-	testArtifactSha1Sum := "78bc8a542fa84494ff14ae412196d134c603960c"
 	testProviderName := "TestProvider"
 	testArtifactFilename := fmt.Sprintf("%v_%v.box", testBoxName, testProviderName)
 	testArtifactPath := path.Join(testdir, testArtifactFilename)
 	ui := &packer.BasicUi{}
 	inartifact := &packer.MockArtifact{FilesValue: []string{testArtifactPath}}
-	pp := PostProcessor{}
+	pp := CaryatidPostProcessor{}
 	inkeepinput := false
 
 	pp.config.CatalogRoot = fmt.Sprintf("file://%v", testdir)
@@ -54,16 +53,22 @@ func TestPostProcess(t *testing.T) {
 	}
 
 	// Run the tests
-	boxArt, keepinputresult, err := pp.PostProcess(ui, inartifact)
+	outArt, keepinputresult, err := pp.PostProcess(ui, inartifact)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error during PostProcess(): %v", err))
 	}
 	if keepinputresult != inkeepinput {
 		t.Fatal(fmt.Sprintf("Failed to keep input consistently"))
 	}
-	if boxArt.Checksum != testArtifactSha1Sum {
-		t.Fatal(fmt.Sprintf("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, boxArt.Checksum))
+	if outArt.BuilderId() != BuilderId {
+		t.Fatal("BuildId does not match")
 	}
+
+	// Can't test these because we aren't getting what Packer thinks is a real BoxArtifact, just a packer.Artifact
+	// testArtifactSha1Sum := "78bc8a542fa84494ff14ae412196d134c603960c"
+	// if outArt.Checksum != testArtifactSha1Sum {
+	// 	t.Fatal(fmt.Sprintf("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, outArt.Checksum))
+	// }
 
 	expectedCatalogData := `{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file:///Users/mrled/Documents/Go/src/github.com/mrled/packer-post-processor-caryatid/integration_test/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"78bc8a542fa84494ff14ae412196d134c603960c"}]}]}`
 	testCatalogPath := path.Join(testdir, fmt.Sprintf("%v.json", testBoxName))
