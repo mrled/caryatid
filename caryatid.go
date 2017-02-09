@@ -395,7 +395,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	catalog = AddBoxToCatalog(catalog, boxArtifact)
 	log.Println(fmt.Sprintf("Catalog updated; new value is:\n%v", catalog))
 
-	jsonData, err := json.Marshal(catalog)
+	jsonData, err := json.MarshalIndent(catalog, "", "  ")
 	if err != nil {
 		log.Println("Error trying to marshal catalog: ", err)
 		return
