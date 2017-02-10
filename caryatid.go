@@ -415,7 +415,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 
 	catalogBytes, err := ioutil.ReadFile(catalogPath)
 	if os.IsNotExist(err) {
-		log.Println("No file at '%v'; starting with empty catalog", catalogPath)
+		log.Println(fmt.Sprintf("No file at '%v'; starting with empty catalog", catalogPath))
 		catalogBytes = []byte("{}")
 	} else if err != nil {
 		log.Println("Error trying to read catalog: ", err)
