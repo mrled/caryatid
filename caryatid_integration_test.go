@@ -1,10 +1,13 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"runtime"
@@ -31,6 +34,55 @@ func TestThatIntegrationTestingIsSetUpCorrectly(t *testing.T) {
 		t.Fatal("Failed to detect thisdir using runtime.Caller()")
 	}
 	fmt.Println(fmt.Sprintf("Detected running the test directory as '%v'", thisdir))
+}
+
+func TestDetermineProviderFromMetadata(t *testing.T) {
+	var err error
+
+	err = os.MkdirAll(integrationTestDir, 0777)
+	if err != nil {
+		t.Fatal("Error trying to create test directory: ", err)
+	}
+	if *keepFlag {
+		fmt.Printf("Will not remove integraion test dir '%v' after tests complete", integrationTestDir)
+	} else {
+		defer os.RemoveAll(integrationTestDir)
+	}
+
+	// Create a buffer to write our archive to.
+	buf := new(bytes.Buffer)
+
+	// Create a new zip archive.
+	w := zip.NewWriter(buf)
+	md, err := w.Create("metadata.json")
+	if err != nil {
+		t.Fatal("Failed to create zipped metadata.json file: ", err)
+	}
+	testProviderName := "TESTPROVIDER"
+	_, err = md.Write([]byte(fmt.Sprintf(`{"provider": "%v"}`, testProviderName)))
+
+	// Make sure to check the error on Close.
+	err = w.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	zipFilePath := path.Join(integrationTestDir, "test.zip")
+	zipFile, err := os.Create(zipFilePath)
+	if err != nil {
+		t.Fatal("Failed to create zipfile: ", err)
+	}
+	if _, err = zipFile.Write(buf.Bytes()); err != nil {
+		t.Fatal("Error writing zipfile: ", err)
+	}
+
+	resultProviderName, err := determineProviderFromMetadata(zipFilePath)
+	if err != nil {
+		t.Fatal("Error trying to determine provider: ", err)
+	}
+	if resultProviderName != testProviderName {
+		t.Fatal("Expected provider name does not match result provider name: ", testProviderName, resultProviderName)
+	}
 }
 
 func TestPostProcess(t *testing.T) {

@@ -23,6 +23,7 @@ Here's the JSON of an example catalog:
 package main
 
 import (
+	"archive/zip"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -58,6 +59,40 @@ func determineProvider(boxFile string) (result string, err error) {
 		result = matches[1]
 		return
 	}
+}
+
+func determineProviderFromMetadata(boxFilePath string) (result string, err error) {
+	zipReader, err := zip.OpenReader(boxFilePath)
+	if err != nil {
+		return
+	}
+	defer zipReader.Close()
+
+	var openedMetadataFile io.ReadCloser
+	for _, zippedFile := range zipReader.File {
+		if strings.ToLower(zippedFile.Name) == "metadata.json" {
+			openedMetadataFile, err = zippedFile.Open()
+			defer openedMetadataFile.Close()
+			if err != nil {
+				return
+			}
+			break
+		}
+	}
+	metadataContents, err := ioutil.ReadAll(openedMetadataFile)
+	if err != nil {
+		return
+	}
+
+	var metadata struct {
+		Provider string `json:provider`
+	}
+	if err = json.Unmarshal([]byte(metadataContents), &metadata); err != nil {
+		return
+	}
+
+	result = metadata.Provider
+	return
 }
 
 func pathExists(path string) (bool, error) {
