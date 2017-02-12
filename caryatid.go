@@ -332,13 +332,13 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	// Sanity check the artifact we were passed
 	if len(artifact.Files()) != 1 {
 		err = fmt.Errorf(
-			"Wrong number of files in the input artifact; expected exactly 1 file but found %v",
-			len(artifact.Files()))
+			"Wrong number of files in the input artifact; expected exactly 1 file but found %v:\n%v",
+			len(artifact.Files()), strings.Join(artifact.Files(), ", "))
 		return
 	}
 	inBoxFile := artifact.Files()[0]
 	if !strings.HasSuffix(inBoxFile, ".box") {
-		err = fmt.Errorf("Box file '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", inBoxFile)
+		err = fmt.Errorf("Input artifact '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", inBoxFile)
 		return
 	}
 	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", inBoxFile))
