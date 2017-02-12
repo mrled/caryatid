@@ -23,7 +23,8 @@ Here's the JSON of an example catalog:
 package main
 
 import (
-	"archive/zip"
+	"archive/tar"
+	"compress/gzip"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -47,32 +48,43 @@ import (
 // Determine the provider of a Vagrant box based on its metadata.json
 // See also https://www.packer.io/docs/post-processors/vagrant.html
 func determineProvider(boxFilePath string) (result string, err error) {
-	zipReader, err := zip.OpenReader(boxFilePath)
+	file, err := os.Open(boxFilePath)
+	defer file.Close()
 	if err != nil {
 		return
 	}
-	defer zipReader.Close()
 
-	var openedMetadataFile io.ReadCloser
-	for _, zippedFile := range zipReader.File {
-		if strings.ToLower(zippedFile.Name) == "metadata.json" {
-			openedMetadataFile, err = zippedFile.Open()
-			defer openedMetadataFile.Close()
-			if err != nil {
-				return
-			}
-			break
-		}
-	}
-	metadataContents, err := ioutil.ReadAll(openedMetadataFile)
+	gzReader, err := gzip.NewReader(file)
+	defer gzReader.Close()
 	if err != nil {
-		return
+		return result, err
+	}
+
+	tarReader := tar.NewReader(gzReader)
+
+	var metadataContents []byte
+	done := false
+	for done == false {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			return result, fmt.Errorf("Could not find metadata.json file in %v", boxFilePath)
+		} else if err != nil {
+			return result, err
+		}
+
+		if strings.ToLower(header.Name) == "metadata.json" {
+			done = true
+			metadataContents, err = ioutil.ReadAll(tarReader)
+			if err != nil {
+				return result, err
+			}
+		}
 	}
 
 	var metadata struct {
 		Provider string `json:provider`
 	}
-	if err = json.Unmarshal([]byte(metadataContents), &metadata); err != nil {
+	if err = json.Unmarshal(metadataContents, &metadata); err != nil {
 		return
 	}
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"archive/zip"
-	"bytes"
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -55,35 +55,36 @@ func TestMain(m *testing.M) {
 	os.Exit(testRv)
 }
 
-func CreateTestBoxFile(filePath string, providerName string) (err error) {
-	// Create a buffer to write our archive to.
-	buf := new(bytes.Buffer)
-
-	// Create a new zip archive.
-	w := zip.NewWriter(buf)
-	md, err := w.Create("metadata.json")
-	if err != nil {
-		return fmt.Errorf("Failed to create zipped metadata.json file: ", err)
-	}
-	_, err = md.Write([]byte(fmt.Sprintf(`{"provider": "%v"}`, providerName)))
-
-	// Make sure to check the error on Close.
-	err = w.Close()
+func createTestBoxFile(filePath string, providerName string, compress bool) (err error) {
+	outFile, err := os.Create(filePath)
 	if err != nil {
 		return
 	}
+	defer outFile.Close()
 
-	zipFile, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("Failed to create zipfile: ", err)
+	gzipWriter := gzip.NewWriter(outFile)
+	defer gzipWriter.Close()
+
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
+
+	metaDataContents := fmt.Sprintf(`{"provider": "%v"}`, providerName)
+	header := &tar.Header{
+		Name: "metadata.json",
+		Mode: 0666,
+		Size: int64(len(metaDataContents)),
 	}
-	if _, err = zipFile.Write(buf.Bytes()); err != nil {
-		return fmt.Errorf("Error writing zipfile: ", err)
+
+	if err = tarWriter.WriteHeader(header); err != nil {
+		return
+	}
+	if _, err = tarWriter.Write([]byte(metaDataContents)); err != nil {
+		return
 	}
 	return
 }
 
-func TestDetermineProvider(t *testing.T) {
+func TestDetermineProvider_Gzipped(t *testing.T) {
 	var (
 		err                error
 		resultProviderName string
@@ -91,7 +92,7 @@ func TestDetermineProvider(t *testing.T) {
 		testArtifactPath   = path.Join(integrationTestDir, "testDetProv.box")
 	)
 
-	err = CreateTestBoxFile(testArtifactPath, testProviderName)
+	err = createTestBoxFile(testArtifactPath, testProviderName, true)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
 	}
@@ -125,7 +126,7 @@ func TestPostProcess(t *testing.T) {
 	pp.config.Version = "6.6.6"
 
 	// Set up test: write files etc
-	err = CreateTestBoxFile(testArtifactPath, testProviderName)
+	err = createTestBoxFile(testArtifactPath, testProviderName, true)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
 	}
@@ -148,7 +149,7 @@ func TestPostProcess(t *testing.T) {
 	// 	t.Fatal(fmt.Sprintf("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, outArt.Checksum))
 	// }
 
-	expectedCatalogStr := fmt.Sprintf(`{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file://%v/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"f7deb26816f93777a79018b7ccf73308cf7d027b"}]}]}`, integrationTestDir)
+	expectedCatalogStr := fmt.Sprintf(`{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file://%v/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"2cca98d0ecfd03d57a3106950e14d724797f0836"}]}]}`, integrationTestDir)
 	resultCatalogPath := path.Join(integrationTestDir, fmt.Sprintf("%v.json", testBoxName))
 	resultCatalogData, err := ioutil.ReadFile(resultCatalogPath)
 	if err != nil {
