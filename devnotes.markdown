@@ -33,3 +33,6 @@ I've never written a Packer plugin or, indeed, a single line of Go, so I found t
 - [packer-post-processor-vhd](https://github.com/benwebber/packer-post-processor-vhd) - A more complex post-processor that does unit testing (not even integration testing) on its PostProcess() method, also useful for reference
 - [Packer source for the PostProcessor interface](https://github.com/mitchellh/packer/blob/master/packer/post_processor.go)
 - [Packer source for the first-party Atlas post-processor](https://github.com/mitchellh/packer/blob/master/post-processor/atlas/post-processor.go)
+- [How to set up a self-hosted "vagrant cloud" with versioned, self-packaged vagrant boxes](https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md) shows you how to write Vagrant catalogs manually
+- [Distributing Vagrant base boxes securely](http://chase-seibert.github.io/blog/2014/05/18/vagrant-authenticated-private-box-urls.html) also discusses creating Vagrant catalogs manually
+
