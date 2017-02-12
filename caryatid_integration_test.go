@@ -25,29 +25,39 @@ var (
 	_, thisfile, _, runtimeCallerOk = runtime.Caller(0)
 	thisdir, _                      = path.Split(thisfile)
 	integrationTestDir              = path.Join(thisdir, integrationTestDirName)
-	keepFlag                        = flag.Bool("k", false, fmt.Sprintf("Keep the %v directory after running integration tests", integrationTestDir))
 )
 
-// A somewhat silly test that exists because we can't put logic outside of a function
-func TestThatIntegrationTestingIsSetUpCorrectly(t *testing.T) {
+func TestMain(m *testing.M) {
+	var (
+		err      error
+		keepFlag = flag.Bool("k", false, fmt.Sprintf("Keep the %v directory after running integration tests", integrationTestDir))
+	)
+
+	// Have to check this here because we can't put logic outside of a function
 	if !runtimeCallerOk {
-		t.Fatal("Failed to detect thisdir using runtime.Caller()")
+		panic("Failed to detect thisdir using runtime.Caller()")
 	}
 	fmt.Println(fmt.Sprintf("Detected running the test directory as '%v'", thisdir))
+
+	err = os.MkdirAll(integrationTestDir, 0777)
+	if err != nil {
+		panic(fmt.Sprintf("Error trying to create test directory: ", err))
+	}
+
+	testRv := m.Run()
+
+	// os.Exit() doesn't respect defer, so we can't have defered the call to os.RemoveAll() at creation time
+	if *keepFlag {
+		fmt.Printf("Will not remove integraion test dir '%v' after tests complete", integrationTestDir)
+	} else {
+		os.RemoveAll(integrationTestDir)
+	}
+
+	os.Exit(testRv)
 }
 
 func TestDetermineProviderFromMetadata(t *testing.T) {
 	var err error
-
-	err = os.MkdirAll(integrationTestDir, 0777)
-	if err != nil {
-		t.Fatal("Error trying to create test directory: ", err)
-	}
-	if *keepFlag {
-		fmt.Printf("Will not remove integraion test dir '%v' after tests complete", integrationTestDir)
-	} else {
-		defer os.RemoveAll(integrationTestDir)
-	}
 
 	// Create a buffer to write our archive to.
 	buf := new(bytes.Buffer)
@@ -107,16 +117,6 @@ func TestPostProcess(t *testing.T) {
 	pp.config.Version = "6.6.6"
 
 	// Set up test: write files etc
-	err = os.MkdirAll(integrationTestDir, 0777)
-	if err != nil {
-		t.Fatal("Error trying to create test directory: ", err)
-	}
-	if *keepFlag {
-		fmt.Printf("Will not remove integraion test dir '%v' after tests complete", integrationTestDir)
-	} else {
-		defer os.RemoveAll(integrationTestDir)
-	}
-
 	err = ioutil.WriteFile(testArtifactPath, []byte(testArtifactContents), 0666)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error trying to write file: ", err))
