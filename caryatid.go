@@ -34,7 +34,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 
 	"github.com/mitchellh/packer/common"
@@ -45,23 +44,9 @@ import (
 
 //// Internal use only
 
-// Hack version: pull it from the filename
-// Final version should open the .box zipfile and extract it: https://www.vagrantup.com/docs/boxes/format.html
-// By default, artifacts emited from the Vagrant post-processor are named packer_{{.BuildName}}_{{.Provider}}.box
-// according to https://www.packer.io/docs/post-processors/vagrant.html
-func determineProvider(boxFile string) (result string, err error) {
-	re := regexp.MustCompile(".*_([[:alnum:]]+).box$")
-	matches := re.FindStringSubmatch(boxFile)
-	if len(matches) != 2 { // matches[0] is always the whole input, if there are any submatches
-		err = fmt.Errorf("Wrong number of matches; expected 1, but found '%v'", len(matches))
-		return
-	} else {
-		result = matches[1]
-		return
-	}
-}
-
-func determineProviderFromMetadata(boxFilePath string) (result string, err error) {
+// Determine the provider of a Vagrant box based on its metadata.json
+// See also https://www.packer.io/docs/post-processors/vagrant.html
+func determineProvider(boxFilePath string) (result string, err error) {
 	zipReader, err := zip.OpenReader(boxFilePath)
 	if err != nil {
 		return

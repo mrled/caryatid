@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"runtime"
@@ -48,7 +47,7 @@ func TestMain(m *testing.M) {
 
 	// os.Exit() doesn't respect defer, so we can't have defered the call to os.RemoveAll() at creation time
 	if *keepFlag {
-		fmt.Printf("Will not remove integraion test dir '%v' after tests complete", integrationTestDir)
+		fmt.Println(fmt.Sprintf("Will not remove integraion test dir after tests complete\n%v", integrationTestDir))
 	} else {
 		os.RemoveAll(integrationTestDir)
 	}
@@ -56,9 +55,7 @@ func TestMain(m *testing.M) {
 	os.Exit(testRv)
 }
 
-func TestDetermineProviderFromMetadata(t *testing.T) {
-	var err error
-
+func CreateTestBoxFile(filePath string, providerName string) (err error) {
 	// Create a buffer to write our archive to.
 	buf := new(bytes.Buffer)
 
@@ -66,27 +63,40 @@ func TestDetermineProviderFromMetadata(t *testing.T) {
 	w := zip.NewWriter(buf)
 	md, err := w.Create("metadata.json")
 	if err != nil {
-		t.Fatal("Failed to create zipped metadata.json file: ", err)
+		return fmt.Errorf("Failed to create zipped metadata.json file: ", err)
 	}
-	testProviderName := "TESTPROVIDER"
-	_, err = md.Write([]byte(fmt.Sprintf(`{"provider": "%v"}`, testProviderName)))
+	_, err = md.Write([]byte(fmt.Sprintf(`{"provider": "%v"}`, providerName)))
 
 	// Make sure to check the error on Close.
 	err = w.Close()
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
-	zipFilePath := path.Join(integrationTestDir, "test.zip")
-	zipFile, err := os.Create(zipFilePath)
+	zipFile, err := os.Create(filePath)
 	if err != nil {
-		t.Fatal("Failed to create zipfile: ", err)
+		return fmt.Errorf("Failed to create zipfile: ", err)
 	}
 	if _, err = zipFile.Write(buf.Bytes()); err != nil {
-		t.Fatal("Error writing zipfile: ", err)
+		return fmt.Errorf("Error writing zipfile: ", err)
+	}
+	return
+}
+
+func TestDetermineProvider(t *testing.T) {
+	var (
+		err                error
+		resultProviderName string
+		testProviderName   = "TESTPROVIDER"
+		testArtifactPath   = path.Join(integrationTestDir, "testDetProv.box")
+	)
+
+	err = CreateTestBoxFile(testArtifactPath, testProviderName)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
 	}
 
-	resultProviderName, err := determineProviderFromMetadata(zipFilePath)
+	resultProviderName, err = determineProvider(testArtifactPath)
 	if err != nil {
 		t.Fatal("Error trying to determine provider: ", err)
 	}
@@ -97,18 +107,16 @@ func TestDetermineProviderFromMetadata(t *testing.T) {
 
 func TestPostProcess(t *testing.T) {
 	var (
-		err error
+		err                  error
+		testBoxName          = "TestBoxName"
+		testProviderName     = "TestProvider"
+		testArtifactFilename = fmt.Sprintf("%v_%v.box", testBoxName, testProviderName)
+		testArtifactPath     = path.Join(integrationTestDir, testArtifactFilename)
+		ui                   = &packer.BasicUi{}
+		inartifact           = &packer.MockArtifact{FilesValue: []string{testArtifactPath}}
+		pp                   = CaryatidPostProcessor{}
+		inkeepinput          = false
 	)
-
-	testBoxName := "TestBoxName"
-	testArtifactContents := "This is a test artifact"
-	testProviderName := "TestProvider"
-	testArtifactFilename := fmt.Sprintf("%v_%v.box", testBoxName, testProviderName)
-	testArtifactPath := path.Join(integrationTestDir, testArtifactFilename)
-	ui := &packer.BasicUi{}
-	inartifact := &packer.MockArtifact{FilesValue: []string{testArtifactPath}}
-	pp := CaryatidPostProcessor{}
-	inkeepinput := false
 
 	pp.config.CatalogRoot = fmt.Sprintf("file://%v", integrationTestDir)
 	pp.config.Description = "Test box description"
@@ -117,9 +125,9 @@ func TestPostProcess(t *testing.T) {
 	pp.config.Version = "6.6.6"
 
 	// Set up test: write files etc
-	err = ioutil.WriteFile(testArtifactPath, []byte(testArtifactContents), 0666)
+	err = CreateTestBoxFile(testArtifactPath, testProviderName)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Error trying to write file: ", err))
+		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
 	}
 
 	// Run the tests
@@ -140,7 +148,7 @@ func TestPostProcess(t *testing.T) {
 	// 	t.Fatal(fmt.Sprintf("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, outArt.Checksum))
 	// }
 
-	expectedCatalogStr := fmt.Sprintf(`{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file://%v/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"78bc8a542fa84494ff14ae412196d134c603960c"}]}]}`, integrationTestDir)
+	expectedCatalogStr := fmt.Sprintf(`{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file://%v/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"f7deb26816f93777a79018b7ccf73308cf7d027b"}]}]}`, integrationTestDir)
 	resultCatalogPath := path.Join(integrationTestDir, fmt.Sprintf("%v.json", testBoxName))
 	resultCatalogData, err := ioutil.ReadFile(resultCatalogPath)
 	if err != nil {

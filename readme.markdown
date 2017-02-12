@@ -48,8 +48,6 @@ Files created by Caryatid honor the user's `umask`.
 - Add scp support. Vagrant is [supposed to support scp](https://github.com/mitchellh/vagrant/pull/1041), but [apparently doesn't bundle a properly-built `curl` yet](https://github.com/mitchellh/vagrant-installers/issues/30). This means you may need to build your own `curl` that supports scp, and possibly even replace your system-supplied curl with that one, in order to use catalogs hosted on scp with Vagrant. (Note that we do not rely on curl, so even if your curl is old, Caryatid can still push to scp backends.)
 - Would love to support S3 storage, however, there isn't a way to authenticate to S3 through Vagrant, at least without third party libraries. This would mean that the boxes stored on S3 would be public. This is fine for my use case, except that it means anyone with the URL to a box could cost me money just by downloading the boxes over and over
 - Some sort of webserver mode would be nice, and is in line with the no server-side logic goal. Probably require an scp url for doing uploads in addition to an http url for vagrant to fetch the boxes? Or could require WebDAV?
-- When is it appropriate/not appropriate to use `panic()` ?
-- Instead of using the .box artifact filename to determine the provider, extract the metadata.json file from it and use that (see (the Vagrant docs on its .box fileformat)[https://www.vagrantup.com/docs/boxes/format.html]). This should be more robust
 
 ## See also
 
