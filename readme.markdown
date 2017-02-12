@@ -18,6 +18,28 @@ More generally, Caryatid intended as a way to host a (versioned) Vagrant catalog
 - Copy to `~/.packer.d/plugins` or `%APPDATA%\packer.d\plugins`
 - See also the [official plugins documentation](https://www.packer.io/docs/extend/plugins.html)
 
+## Using
+
+In your packerfile, you must add it as a post-processor in a *series*, and coming after a vagrant post-processor (because caryatid requires Vagrant boxes to come in as artifacts). That might look like this:
+
+    "post-processors": [
+      [
+        {
+          "type": "vagrant",
+          "vagrantfile_template": "{{user `boxname`}}_vagrantfile.template"
+        },
+        {
+          "type": "caryatid",
+          "name": "{{user `boxname`}}",
+          "version": "{{user `version`}}",
+          "description": "{{user `description`}}",
+          "catalog_root_url": "{{user `catalog_root_url`}}"
+        }
+      ]
+    ]
+
+Note the double open square brackets (`[`) after `"post-processors":`! The first square bracket indicates the start of the `post-processors` section; the second indicates the start of a post-processor sequence, where artifacts from the previous post-processor are fed as input into the next. If you don't define a sequence using an extra set of square brackets, the vagrant post-processor will run with inputs from the builder, and the caryatid post-processor will run afterwards also with inputs from the builder. See the [official post-processor documentation](https://www.packer.io/docs/templates/post-processors.html) for more details on sequences.
+
 ## Output and directory structure
 
 Using a destination of `/srv/vagrant`, a box name of `testbox`, and trying to add a Virtualbox edition of that box at version 1.0.0 would result in a directory structure like this:
