@@ -62,10 +62,14 @@ func createTestBoxFile(filePath string, providerName string, compress bool) (err
 	}
 	defer outFile.Close()
 
-	gzipWriter := gzip.NewWriter(outFile)
-	defer gzipWriter.Close()
-
-	tarWriter := tar.NewWriter(gzipWriter)
+	var tarWriter *tar.Writer
+	if compress {
+		gzipWriter := gzip.NewWriter(outFile)
+		defer gzipWriter.Close()
+		tarWriter = tar.NewWriter(gzipWriter)
+	} else {
+		tarWriter = tar.NewWriter(outFile)
+	}
 	defer tarWriter.Close()
 
 	metaDataContents := fmt.Sprintf(`{"provider": "%v"}`, providerName)
@@ -84,20 +88,34 @@ func createTestBoxFile(filePath string, providerName string, compress bool) (err
 	return
 }
 
-func TestDetermineProvider_Gzipped(t *testing.T) {
+func TestDetermineProvider(t *testing.T) {
 	var (
 		err                error
 		resultProviderName string
 		testProviderName   = "TESTPROVIDER"
-		testArtifactPath   = path.Join(integrationTestDir, "testDetProv.box")
+		testGzipArtifact   = path.Join(integrationTestDir, "testDetProvGz.box")
+		testTarArtifact    = path.Join(integrationTestDir, "testDetProvTar.box")
 	)
 
-	err = createTestBoxFile(testArtifactPath, testProviderName, true)
+	err = createTestBoxFile(testGzipArtifact, testProviderName, true)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
 	}
 
-	resultProviderName, err = determineProvider(testArtifactPath)
+	resultProviderName, err = determineProvider(testGzipArtifact)
+	if err != nil {
+		t.Fatal("Error trying to determine provider: ", err)
+	}
+	if resultProviderName != testProviderName {
+		t.Fatal("Expected provider name does not match result provider name: ", testProviderName, resultProviderName)
+	}
+
+	err = createTestBoxFile(testTarArtifact, testProviderName, false)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
+	}
+
+	resultProviderName, err = determineProvider(testTarArtifact)
 	if err != nil {
 		t.Fatal("Error trying to determine provider: ", err)
 	}

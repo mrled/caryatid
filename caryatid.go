@@ -54,13 +54,35 @@ func determineProvider(boxFilePath string) (result string, err error) {
 		return
 	}
 
-	gzReader, err := gzip.NewReader(file)
-	defer gzReader.Close()
+	magic := make([]byte, 2, 2)
+	_, err = file.Read(magic)
 	if err != nil {
-		return result, err
+		return
 	}
 
-	tarReader := tar.NewReader(gzReader)
+	// "Rewind" the file reader. If we don't do this after reading the magic number,
+	// then gzip.NewReader() will see the file starting at the third byte, and panic()
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return
+	}
+
+	// The magic number for Gzip files is 0xF1 0x8B or, in decimal, 31 139.
+	var tarReader tar.Reader
+	if magic[0] == 31 && magic[1] == 139 {
+		gzReader, err := gzip.NewReader(file)
+		defer gzReader.Close()
+		if err != nil {
+			e := fmt.Errorf("Failed to create gzip reader for file '%v': %v", boxFilePath, err)
+			fmt.Printf("%v\n", e)
+			return result, e
+		}
+		tr := tar.NewReader(gzReader)
+		tarReader = *tr
+	} else {
+		tr := tar.NewReader(file)
+		tarReader = *tr
+	}
 
 	var metadataContents []byte
 	done := false
@@ -74,7 +96,7 @@ func determineProvider(boxFilePath string) (result string, err error) {
 
 		if strings.ToLower(header.Name) == "metadata.json" {
 			done = true
-			metadataContents, err = ioutil.ReadAll(tarReader)
+			metadataContents, err = ioutil.ReadAll(&tarReader)
 			if err != nil {
 				return result, err
 			}
