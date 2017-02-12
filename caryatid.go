@@ -400,7 +400,6 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	catalogRootPath := catalogRootUrl.Path
 	boxDir := path.Join(catalogRootPath, pp.config.Name)
 
-	// TODO: should do something more sensible than an unchangeable world-readable directory here
 	err = os.MkdirAll(boxDir, 0777)
 	if err != nil {
 		log.Println("Error trying to create the box directory: ", err)
@@ -414,7 +413,6 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		return
 	}
 	boxUrl.Path = boxPath
-	// catalogUrl = fmt.Sprintf("%v/", catalogRootUrl.String())
 
 	boxArtifact := BoxArtifact{
 		inBoxFile,

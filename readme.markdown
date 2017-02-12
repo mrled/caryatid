@@ -12,6 +12,12 @@ More generally, Caryatid intended as a way to host a (versioned) Vagrant catalog
 - Packer
 - Disk space to keep (large) Vagrant box files
 
+## Installing
+
+- Build with `go build`
+- Copy to `~/.packer.d/plugins` or `%APPDATA%\packer.d\plugins`
+- See also the [official plugins documentation](https://www.packer.io/docs/extend/plugins.html)
+
 ## Output and directory structure
 
 Using a destination of `/srv/vagrant`, a box name of `testbox`, and trying to add a Virtualbox edition of that box at version 1.0.0 would result in a directory structure like this:
