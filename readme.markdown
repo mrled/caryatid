@@ -51,7 +51,6 @@ Files created by Caryatid honor the user's `umask`.
 
 ## See also
 
-- The [Vagrant docs on the .box format](https://www.vagrantup.com/docs/boxes/format.html) goes into detail on the "box metadata", that is, what I have been calling the "Vagrant catalog"
 - [How to set up a self-hosted "vagrant cloud" with versioned, self-packaged vagrant boxes](https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md) shows you how to do this manually
 - [Distributing Vagrant base boxes securely](http://chase-seibert.github.io/blog/2014/05/18/vagrant-authenticated-private-box-urls.html) also discusses doing this manually
 

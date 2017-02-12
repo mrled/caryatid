@@ -26,6 +26,7 @@ In designing this plugin, it was helpful for me to outline how artifacts go from
 
 I've never written a Packer plugin or, indeed, a single line of Go, so I found these links useful, and I am tired of hunting through my history to find them again
 
+- The [Vagrant docs on the .box format](https://www.vagrantup.com/docs/boxes/format.html) goes into detail on the "box metadata", that is, what I have been calling the "Vagrant catalog"
 - [Custom post-processor development](https://www.packer.io/docs/extend/post-processor.html) - official Packer documentation
 - [How the first-party Varant post-processor works](https://www.packer.io/docs/post-processors/vagrant.html) - we consume the output of this post-processor
 - [packer-post-processor-ami-file](https://github.com/scopely/packer-post-processor-ami-file) - A very tiny post-processor, useful for reference, with tests
