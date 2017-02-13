@@ -19,6 +19,7 @@ Caryatid is intended to work on any platform that Packer supports, but gets some
 - Build with `go build`
 - Copy to `~/.packer.d/plugins` or `%APPDATA%\packer.d\plugins`
 - See also the [official plugins documentation](https://www.packer.io/docs/extend/plugins.html)
+- To build a release, run `go build buildrelease.go`; this will result in a `release` directory that contains executables for every supported architecture
 
 ## Using
 
