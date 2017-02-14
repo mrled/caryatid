@@ -1,3 +1,5 @@
+.DS_Store
+._*
 packer-post-processor-caryatid
 integration_tests/
 release/
