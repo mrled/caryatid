@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -83,14 +84,14 @@ func assembleZip(goos string, goarch string, thisDir string, zipOutDir string, z
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	fmt.Printf("Building %v-%v binary\n", goos, goarch)
+	fmt.Printf("Building %v/%v binary\n", goos, goarch)
 	err = cmd.Run()
 	defer os.Remove(tmpExeName)
 	if err != nil {
 		return fmt.Errorf("Error running command '%v':\nSTDOUT: %v\nSTDERR: %v\nGo error: %v\n", cmd, stdout.String(), stderr.String(), err)
 	}
 
-	fmt.Printf("Creating zipfile for %v-%v binary at %v\n", goos, goarch, zipOutPath)
+	fmt.Printf("Creating zipfile for %v/%v binary at %v\n", goos, goarch, zipOutPath)
 	zipOutFile, err := os.Create(zipOutPath)
 	defer zipOutFile.Close()
 	if err != nil {
@@ -146,6 +147,9 @@ func main() {
 		panic("Could not determine build script file path")
 	}
 
+	versionFlag := flag.String("version", "devel", "A version number")
+	flag.Parse()
+
 	platforms := [][]string{
 		[]string{"darwin", "amd64"},
 		[]string{"freebsd", "amd64"},
@@ -166,11 +170,11 @@ func main() {
 	for _, plat := range platforms {
 		goos := plat[0]
 		goarch := plat[1]
-		zipBaseName := fmt.Sprintf("caryatid_%v-%v", goos, goarch)
+		zipBaseName := fmt.Sprintf("caryatid_%v_%v_%v", goos, goarch, *versionFlag)
 
 		err = assembleZip(goos, goarch, thisDir, releaseDir, zipBaseName)
 		if err != nil {
-			fmt.Printf("Error assembling zip file for %v-%v: %v", goos, goarch, err)
+			fmt.Printf("Error assembling zip file for %v/%v: %v", goos, goarch, err)
 		}
 	}
 }
