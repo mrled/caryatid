@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/mitchellh/packer/packer"
+	"github.com/hashicorp/packer/packer"
 )
 
 // Integration tests

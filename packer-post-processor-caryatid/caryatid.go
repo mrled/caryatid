@@ -35,12 +35,13 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
-	"github.com/mitchellh/packer/common"
-	"github.com/mitchellh/packer/helper/config"
-	"github.com/mitchellh/packer/packer"
-	"github.com/mitchellh/packer/template/interpolate"
+	"github.com/hashicorp/packer/common"
+	"github.com/hashicorp/packer/helper/config"
+	"github.com/hashicorp/packer/packer"
+	"github.com/hashicorp/packer/template/interpolate"
 )
 
 //// Internal use only
@@ -397,9 +398,21 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		log.Println("Could not parse CatalogRoot URL of '%v'", pp.config.CatalogRoot)
 		return
 	}
-	catalogRootPath := catalogRootUrl.Path
-	boxDir := path.Join(catalogRootPath, pp.config.Name)
 
+	catalogRootPath := ""
+	// If the URI looks like 'file:///C:\\path\\to\\something', catalogRootUrl.Path will be '/C:\\path\\to\\something'
+	// ... strip out the leading slash before using it
+	matched, err := regexp.MatchString("^/[a-zA-Z]:", catalogRootUrl.Path)
+	if err != nil {
+		log.Printf("regexp.MatchString error: '%v'\n", err)
+		return
+	} else if matched {
+		catalogRootPath = catalogRootUrl.Path[1:len(catalogRootUrl.Path)]
+	} else {
+		catalogRootPath = catalogRootUrl.Path
+	}
+
+	boxDir := path.Join(catalogRootPath, pp.config.Name)
 	err = os.MkdirAll(boxDir, 0777)
 	if err != nil {
 		log.Println("Error trying to create the box directory: ", err)
