@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/packer/packer"
+	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
 )
 
 // Integration tests
@@ -187,12 +188,12 @@ func TestPostProcess(t *testing.T) {
 		t.Fatal(fmt.Sprintf("Catalog data did not match expectations\n\tExpected: %v\n\tResult:   %v", expectedCatalog, resultCatalog))
 	}
 
-	origDigest, err := sha1sum(testArtifactPath)
+	origDigest, err := util.Sha1sum(testArtifactPath)
 	if err != nil {
 		t.Fatal("Failed to calculate sha1sum of ", testArtifactPath)
 	}
 	copiedBoxPath := path.Join(integrationTestDir, testBoxName, fmt.Sprintf("%v_%v_%v.box", testBoxName, pp.config.Version, testProviderName))
-	copiedDigest, err := sha1sum(copiedBoxPath)
+	copiedDigest, err := util.Sha1sum(copiedBoxPath)
 	if err != nil {
 		t.Fatal("Failed to calculate sha1sum of ", copiedBoxPath)
 	}

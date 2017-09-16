@@ -25,8 +25,6 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
-	"crypto/sha1"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -42,6 +40,7 @@ import (
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/template/interpolate"
+	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
 )
 
 //// Internal use only
@@ -112,53 +111,6 @@ func determineProvider(boxFilePath string) (result string, err error) {
 	}
 
 	result = metadata.Provider
-	return
-}
-
-func pathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, err
-}
-
-func sha1sum(filePath string) (result string, err error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-
-	hash := sha1.New()
-	_, err = io.Copy(hash, file)
-	if err != nil {
-		return
-	}
-
-	result = hex.EncodeToString(hash.Sum(nil))
-	return
-}
-
-func copyFile(src string, dst string) (written int64, err error) {
-	in, err := os.Open(src)
-	defer in.Close()
-	if err != nil {
-		return
-	}
-	out, err := os.Create(dst)
-	defer out.Close()
-	if err != nil {
-		return
-	}
-	written, err = io.Copy(out, in)
-	if err != nil {
-		return
-	}
-	err = out.Close()
 	return
 }
 
@@ -379,7 +331,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", inBoxFile))
 
 	var digest string
-	digest, err = sha1sum(inBoxFile)
+	digest, err = util.Sha1sum(inBoxFile)
 	if err != nil {
 		log.Printf("sha1sum failed for box file '%v' with error %v\n", inBoxFile, err)
 		return
@@ -472,7 +424,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	}
 	log.Println(fmt.Sprintf("Catalog updated on disk to reflect new value"))
 
-	written, err := copyFile(inBoxFile, boxPath)
+	written, err := util.CopyFile(inBoxFile, boxPath)
 	if err != nil {
 		log.Println(fmt.Sprintf("Error trying to copy '%v' to '%v' file: %v", inBoxFile, boxPath, err))
 		return
