@@ -105,7 +105,7 @@ func determineProvider(boxFilePath string) (result string, err error) {
 	}
 
 	var metadata struct {
-		Provider string `json:provider`
+		Provider string `json:"provider"`
 	}
 	if err = json.Unmarshal(metadataContents, &metadata); err != nil {
 		return
@@ -260,7 +260,7 @@ func (bxart *BoxArtifact) Id() string {
 }
 
 func (bxart *BoxArtifact) String() string {
-	return fmt.Sprintf("%s/%s (v. %d)", bxart.Name, bxart.Provider, bxart.Version)
+	return fmt.Sprintf("%s/%s (v. %s)", bxart.Name, bxart.Provider, bxart.Version)
 }
 
 func (*BoxArtifact) State(name string) interface{} {
@@ -381,21 +381,21 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	var digest string
 	digest, err = sha1sum(inBoxFile)
 	if err != nil {
-		log.Println("sha1sum failed for box file '%v' with error %v", inBoxFile, err)
+		log.Printf("sha1sum failed for box file '%v' with error %v\n", inBoxFile, err)
 		return
 	}
 	log.Println(fmt.Sprintf("Found SHA1 hash for file: '%v'", digest))
 
 	provider, err := determineProvider(inBoxFile)
 	if err != nil {
-		log.Println("Could not determine provider from the filename for box file '%v'; got error %v", inBoxFile, err)
+		log.Printf("Could not determine provider from the filename for box file '%v'; got error %v\n", inBoxFile, err)
 		return
 	}
 	log.Println(fmt.Sprintf("Determined provider as '%v'", provider))
 
 	catalogRootUrl, err := url.Parse(pp.config.CatalogRoot)
 	if err != nil {
-		log.Println("Could not parse CatalogRoot URL of '%v'", pp.config.CatalogRoot)
+		log.Printf("Could not parse CatalogRoot URL of '%v'\n", pp.config.CatalogRoot)
 		return
 	}
 

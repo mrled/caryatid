@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 
 	err = os.MkdirAll(integrationTestDir, 0777)
 	if err != nil {
-		panic(fmt.Sprintf("Error trying to create test directory: ", err))
+		panic(fmt.Sprintf("Error trying to create test directory: %v", err))
 	}
 
 	testRv := m.Run()
@@ -99,7 +99,7 @@ func TestDetermineProvider(t *testing.T) {
 
 	err = createTestBoxFile(testGzipArtifact, testProviderName, true)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
+		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: %v", err))
 	}
 
 	resultProviderName, err = determineProvider(testGzipArtifact)
@@ -112,7 +112,7 @@ func TestDetermineProvider(t *testing.T) {
 
 	err = createTestBoxFile(testTarArtifact, testProviderName, false)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
+		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: %v", err))
 	}
 
 	resultProviderName, err = determineProvider(testTarArtifact)
@@ -146,7 +146,7 @@ func TestPostProcess(t *testing.T) {
 	// Set up test: write files etc
 	err = createTestBoxFile(testArtifactPath, testProviderName, true)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: ", err))
+		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: %v", err))
 	}
 
 	// Run the tests
