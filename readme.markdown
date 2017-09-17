@@ -110,7 +110,30 @@ This can be consumed in a Vagrant file by using the JSON catalog as the box URL 
 
 ## Roadmap / wishlist
 
-- Add scp support. Vagrant is [supposed to support scp](https://github.com/mitchellh/vagrant/pull/1041), but [apparently doesn't bundle a properly-built `curl` yet](https://github.com/mitchellh/vagrant-installers/issues/30). This means you may need to build your own `curl` that supports scp, and possibly even replace your system-supplied curl with that one, in order to use catalogs hosted on scp with Vagrant. (Note that Caryatid will not rely on curl, so even if your curl is old, we will still be able to push to scp backends; the only concern is whether your system's Vagrant can pull from them by default or not.)
-- Add support for S3 storage. Unfortunately, there isn't a way to authenticate to S3 through Vagrant as far as I can tell, so boxes stored on S3 would have to be public.
-- Some sort of webserver mode would be nice, and is in line with the no server-side logic goal. Probably require an scp url for doing uploads in addition to an http url for vagrant to fetch the boxes? It does look like Vagrant supports HTTP basic authentication, so downloads for HTTP/HTTPS catalogs could be protected.
-- WebDAV is a possibility, but I'm not sure whether it would be truly valuable or not - I don't see a lot of WebDAV servers out in the wild. On the other hand, it would be conceptually simpler than a webserver mode that requires an scp upload mechanism to supplement it, and it would support HTTP basic auth as well.
+### SCP backend
+
+Vagrant is [supposed to support scp](https://github.com/mitchellh/vagrant/pull/1041), but [apparently doesn't bundle a properly-built `curl` yet](https://github.com/mitchellh/vagrant-installers/issues/30). This means you may need to build your own `curl` that supports scp, and possibly even replace your system-supplied curl with that one, in order to use catalogs hosted on scp with Vagrant. (Note that Caryatid will not rely on curl, so even if your curl is old, we will still be able to push to scp backends; the only concern is whether your system's Vagrant can pull from them by default or not.)
+
+### S3 backend
+
+- Vagrant boxes hosted on S3 will work just fine as an HTTP catalog if the boxes can safely be made public
+- Otherwise, a Vagrant plugin like [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) can be used for the catalog
+
+### Webserver backend
+
+Some sort of webserver mode would be nice, and is in line with the no server-side logic goal. Probably require an scp url for doing uploads in addition to an http url for vagrant to fetch the boxes? It does look like Vagrant supports HTTP basic authentication, so downloads for HTTP/HTTPS catalogs could be protected.
+
+WebDAV is a possibility, but I'm not sure whether it would be truly valuable or not - I don't see a lot of WebDAV servers out in the wild. On the other hand, it would be conceptually simpler than a webserver mode that requires an scp upload mechanism to supplement it, and it would support HTTP basic auth as well.
+
+### Command line manager tool
+
+Write a command line tool that can be used to inspect and modify the catalog.
+
+- Query the catalog to determine what versions of a box are available and for which providers
+- Delete box files by version and provider
+- Delete all versions of a box older than some specified version
+- Unclear what happens to Vagrant if you have a certain version of a box locally, but since that version was downloaded, subsequent versions were added to the catalog and the version that's still local is deleted. If this causes problems for Vagrant, perhaps instead of deleting the box file, I'd keep it in the backend's storage system and overwrite the large box file with an empty file?
+
+Particularly for S3 storage, this will be useful to not only know what is available, but also to save money by deleting ancient unused versions of boxes.
+
+If we add an HTTP backend, the tool would also be useful for other Vagrant catalogs that are not managed by Caryatid.
