@@ -1,0 +1,63 @@
+/*
+Used to keep track of a box artifact that we have been passed
+Implements the packer.Artifact interface
+*/
+
+package main
+
+import (
+	"fmt"
+)
+
+const BuilderId = "com.micahrl.caryatid"
+
+type BoxArtifact struct {
+	// The *local* path for the box - not the final path after we copy the box to the server, but where the artifact is right now
+	Path string
+	// The box name, like "win10x64"
+	Name string
+	// A box description, like "Windows 10, 64-bit"
+	Description string
+	// The version of this artifact, like "1.0.0"
+	Version string
+	// The provider for this artifact, like "virtualbox" or "vmware"
+	Provider string
+	// The root URI of the Vagrant catalog
+	CatalogRootUri string
+	// The type of checksum e.g. "sha1"
+	ChecksumType string
+	// A hex checksum
+	Checksum string
+}
+
+func (*BoxArtifact) BuilderId() string {
+	return BuilderId
+}
+
+func (bxart *BoxArtifact) Files() []string {
+	return nil
+}
+
+func (bxart *BoxArtifact) Id() string {
+	return fmt.Sprintf("%s/%s/%s", bxart.Name, bxart.Provider, bxart.Version)
+}
+
+func (bxart *BoxArtifact) String() string {
+	return fmt.Sprintf("%s/%s (v. %s)", bxart.Name, bxart.Provider, bxart.Version)
+}
+
+func (*BoxArtifact) State(name string) interface{} {
+	return nil
+}
+
+func (art *BoxArtifact) Destroy() error {
+	return nil
+}
+
+func (artifact *BoxArtifact) GetParentUri() string {
+	return fmt.Sprintf("%v/%v", artifact.CatalogRootUri, artifact.Name)
+}
+
+func (artifact *BoxArtifact) GetUri() string {
+	return fmt.Sprintf("%v/%v_%v_%v.box", artifact.GetParentUri(), artifact.Name, artifact.Version, artifact.Provider)
+}

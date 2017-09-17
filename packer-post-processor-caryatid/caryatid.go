@@ -2,22 +2,6 @@
 In architecture, an Atlas [https://atlas.hashicorp.com/] is a column or support sculpted in the form of a man; a Caryatid [https://github.com/mrled/packer-post-processor-caryatid] is such a support in the form of a woman.
 
 Caryatid is a packer post-processor plugin that provides a way to host a (versioned) Vagrant catalog on systems without having to use (and pay for) Atlas, and without having to trust a third party unless you want to.
-
-Here's the JSON of an example catalog:
-
-	{
-		"name": "testbox",
-		"description": "Just an example",
-		"versions": [{
-			"version": "0.1.0",
-			"providers": [{
-				"name": "virtualbox",
-				"url": "user@example.com/caryatid/boxes/testbox_0.1.0.box",
-				"checksum_type": "sha1",
-				"checksum": "d3597dccfdc6953d0a6eff4a9e1903f44f72ab94"
-			}]
-		}]
-	}
 */
 
 package main
@@ -30,10 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/url"
 	"os"
-	"path"
-	"regexp"
 	"strings"
 
 	"github.com/hashicorp/packer/common"
@@ -42,8 +23,6 @@ import (
 	"github.com/hashicorp/packer/template/interpolate"
 	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
 )
-
-//// Internal use only
 
 // Determine the provider of a Vagrant box based on its metadata.json
 // See also https://www.packer.io/docs/post-processors/vagrant.html
@@ -114,150 +93,34 @@ func determineProvider(boxFilePath string) (result string, err error) {
 	return
 }
 
-//// External interface
-
-// Used in a Version, in a Catalog
-type Provider struct {
-	Name         string `json:"name"`
-	Url          string `json:"url"`
-	ChecksumType string `json:"checksum_type"`
-	Checksum     string `json:"checksum"`
-}
-
-// Used in a Catalog
-type Version struct {
-	Version   string     `json:"version"`
-	Providers []Provider `json:"providers"`
-}
-
-func (v1 Version) Equals(v2 Version) bool {
-	if &v1 == &v2 {
-		return true
+func deriveArtifactInfo(artifact packer.Artifact) (boxFile string, digest string, provider string, err error) {
+	if len(artifact.Files()) != 1 {
+		err = fmt.Errorf(
+			"Wrong number of files in the input artifact; expected exactly 1 file but found %v:\n%v",
+			len(artifact.Files()), strings.Join(artifact.Files(), ", "))
+		return
 	}
-	if v1.Version != v2.Version {
-		return false
+
+	boxFile = artifact.Files()[0]
+	if !strings.HasSuffix(boxFile, ".box") {
+		err = fmt.Errorf("Input artifact '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", boxFile)
+		return
 	}
-	if len(v1.Providers) != len(v2.Providers) {
-		return false
+	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", boxFile))
+
+	digest, err = util.Sha1sum(boxFile)
+	if err != nil {
+		log.Printf("sha1sum failed for box file '%v' with error %v\n", boxFile, err)
+		return
 	}
-	for idx := 0; idx < len(v1.Providers); idx += 1 {
-		if v1.Providers[idx] != v2.Providers[idx] {
-			return false
-		}
+	log.Println(fmt.Sprintf("Found SHA1 hash for file: '%v'", digest))
+
+	provider, err = determineProvider(boxFile)
+	if err != nil {
+		log.Printf("Could not determine provider from the filename for box file '%v'; got error %v\n", boxFile, err)
+		return
 	}
-	return true
-}
-
-// A catalog keeps track of multiple versions and providers of a single box
-type Catalog struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Versions    []Version `json:"versions"`
-}
-
-func (c1 Catalog) Equals(c2 Catalog) bool {
-	if &c1 == &c2 {
-		return true
-	}
-	if c1.Name != c2.Name {
-		return false
-	}
-	if c1.Description != c2.Description {
-		return false
-	}
-	if len(c1.Versions) != len(c2.Versions) {
-		return false
-	}
-	for idx := 0; idx < len(c1.Versions); idx += 1 {
-		if !c1.Versions[idx].Equals(c2.Versions[idx]) {
-			return false
-		}
-	}
-	return true
-}
-
-const BuilderId = "com.micahrl.caryatid"
-
-// Used to keep track of a box artifact that we have been passed
-// Implements the packer.Artifact interface
-type BoxArtifact struct {
-	// The *local* path for the box - not the final path after we copy the box to the server, but where the artifact is right now
-	Path string
-	// The box name, like "win10x64"
-	Name string
-	// A box description, like "Windows 10, 64-bit"
-	Description string
-	// The version of this artifact, like "1.0.0"
-	Version string
-	// The provider for this artifact, like "virtualbox" or "vmware"
-	Provider string
-	// The root path of the Vagrant catalog
-	CatalogRoot string
-	// The type of checksum e.g. "sha1"
-	ChecksumType string
-	// A hex checksum
-	Checksum string
-}
-
-func (*BoxArtifact) BuilderId() string {
-	return BuilderId
-}
-
-func (bxart *BoxArtifact) Files() []string {
-	return nil
-}
-
-func (bxart *BoxArtifact) Id() string {
-	return fmt.Sprintf("%s/%s/%s", bxart.Name, bxart.Provider, bxart.Version)
-}
-
-func (bxart *BoxArtifact) String() string {
-	return fmt.Sprintf("%s/%s (v. %s)", bxart.Name, bxart.Provider, bxart.Version)
-}
-
-func (*BoxArtifact) State(name string) interface{} {
-	return nil
-}
-
-func (art *BoxArtifact) Destroy() error {
-	return nil
-}
-
-// Given a BoxArtifact metadata object and a Catalog object representing the contents of a Vagrant JSON catalog,
-func AddBoxToCatalog(catalog Catalog, artifact BoxArtifact) (newCatalog Catalog) {
-
-	newCatalog = catalog
-	newCatalog.Name = artifact.Name
-	newCatalog.Description = artifact.Description
-
-	artifactUrl := fmt.Sprintf("%v/%v/%v_%v_%v.box", artifact.CatalogRoot, artifact.Name, artifact.Name, artifact.Version, artifact.Provider)
-	newProvider := Provider{artifact.Provider, artifactUrl, artifact.ChecksumType, artifact.Checksum}
-	newVersion := Version{artifact.Version, []Provider{newProvider}}
-
-	foundVersion := false
-	foundProvider := false
-
-	for vidx, _ := range newCatalog.Versions {
-		if newCatalog.Versions[vidx].Version == artifact.Version {
-			foundVersion = true
-			for pidx, _ := range newCatalog.Versions[vidx].Providers {
-				if newCatalog.Versions[vidx].Providers[pidx].Name == artifact.Provider {
-					newCatalog.Versions[vidx].Providers[pidx].Url = artifactUrl
-					newCatalog.Versions[vidx].Providers[pidx].ChecksumType = artifact.ChecksumType
-					newCatalog.Versions[vidx].Providers[pidx].Checksum = artifact.Checksum
-					foundProvider = true
-					break
-				}
-			}
-			if !foundProvider {
-				newCatalog.Versions[vidx].Providers = append(newCatalog.Versions[vidx].Providers, newProvider)
-			}
-			break
-		}
-	}
-	if !foundVersion {
-		newCatalog.Versions = append(newCatalog.Versions, newVersion)
-	}
+	log.Println(fmt.Sprintf("Determined provider as '%v'", provider))
 
 	return
 }
@@ -276,9 +139,13 @@ type Config struct {
 	// A short description for the Vagrant box
 	Description string `mapstructure:"description"`
 
-	// The root path for a Vagrant catalog
-	// If the catalog URL is file:///tmp/mybox.json, CatalogRoot is "file:///tmp" and the Name is "mybox"
-	CatalogRoot string `mapstructure:"catalog_root_url"`
+	// Name of the backend to use, such as "localfile"
+	Backend string `mapstructure:"backend"`
+
+	// The root URI for a Vagrant catalog
+	// This is decoded separately by each backend
+	// If the catalog URL is file:///tmp/mybox.json, CatalogRootUri is "file:///tmp" (and the Name is "mybox")
+	CatalogRootUri string `mapstructure:"catalog_root"`
 
 	// Whether to keep the input artifact
 	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`
@@ -305,7 +172,7 @@ func (pp *CaryatidPostProcessor) Configure(raws ...interface{}) error {
 	if pp.config.Version == "" {
 		return fmt.Errorf("Version required")
 	}
-	if pp.config.CatalogRoot == "" {
+	if pp.config.CatalogRootUri == "" {
 		return fmt.Errorf("CatalogRoot required")
 	}
 
@@ -316,68 +183,11 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 
 	keepInputArtifact = pp.config.KeepInputArtifact
 
-	// Sanity check the artifact we were passed
-	if len(artifact.Files()) != 1 {
-		err = fmt.Errorf(
-			"Wrong number of files in the input artifact; expected exactly 1 file but found %v:\n%v",
-			len(artifact.Files()), strings.Join(artifact.Files(), ", "))
-		return
-	}
-	inBoxFile := artifact.Files()[0]
-	if !strings.HasSuffix(inBoxFile, ".box") {
-		err = fmt.Errorf("Input artifact '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", inBoxFile)
-		return
-	}
-	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", inBoxFile))
-
-	var digest string
-	digest, err = util.Sha1sum(inBoxFile)
+	inBoxFile, digest, provider, err := deriveArtifactInfo(artifact)
 	if err != nil {
-		log.Printf("sha1sum failed for box file '%v' with error %v\n", inBoxFile, err)
+		log.Printf("Error deriving artifact information: %v", err)
 		return
 	}
-	log.Println(fmt.Sprintf("Found SHA1 hash for file: '%v'", digest))
-
-	provider, err := determineProvider(inBoxFile)
-	if err != nil {
-		log.Printf("Could not determine provider from the filename for box file '%v'; got error %v\n", inBoxFile, err)
-		return
-	}
-	log.Println(fmt.Sprintf("Determined provider as '%v'", provider))
-
-	catalogRootUrl, err := url.Parse(pp.config.CatalogRoot)
-	if err != nil {
-		log.Printf("Could not parse CatalogRoot URL of '%v'\n", pp.config.CatalogRoot)
-		return
-	}
-
-	catalogRootPath := ""
-	// If the URI looks like 'file:///C:\\path\\to\\something', catalogRootUrl.Path will be '/C:\\path\\to\\something'
-	// ... strip out the leading slash before using it
-	matched, err := regexp.MatchString("^/[a-zA-Z]:", catalogRootUrl.Path)
-	if err != nil {
-		log.Printf("regexp.MatchString error: '%v'\n", err)
-		return
-	} else if matched {
-		catalogRootPath = catalogRootUrl.Path[1:len(catalogRootUrl.Path)]
-	} else {
-		catalogRootPath = catalogRootUrl.Path
-	}
-
-	boxDir := path.Join(catalogRootPath, pp.config.Name)
-	err = os.MkdirAll(boxDir, 0777)
-	if err != nil {
-		log.Println("Error trying to create the box directory: ", err)
-		return
-	}
-
-	boxPath := path.Join(boxDir, fmt.Sprintf("%v_%v_%v.box", pp.config.Name, pp.config.Version, provider))
-	boxUrl, err := url.Parse(catalogRootUrl.String())
-	if err != nil {
-		log.Println("Unexpected error trying to copy catalog URL")
-		return
-	}
-	boxUrl.Path = boxPath
 
 	boxArtifact := BoxArtifact{
 		inBoxFile,
@@ -385,51 +195,46 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		pp.config.Description,
 		pp.config.Version,
 		provider,
-		pp.config.CatalogRoot,
+		pp.config.CatalogRootUri,
 		"sha1",
 		digest,
 	}
 	outArtifact = &boxArtifact
 
-	var catalog Catalog
-	catalogPath := path.Join(catalogRootPath, fmt.Sprintf("%v.json", boxArtifact.Name))
-	log.Println(fmt.Sprintf("Using catalog path of '%v'", catalogPath))
-
-	catalogBytes, err := ioutil.ReadFile(catalogPath)
-	if os.IsNotExist(err) {
-		log.Println(fmt.Sprintf("No file at '%v'; starting with empty catalog", catalogPath))
-		catalogBytes = []byte("{}")
-	} else if err != nil {
-		log.Println("Error trying to read catalog: ", err)
-		return
+	catalogManager := new(VagrantCatalogManager)
+	var backend CaryatidBackend
+	switch pp.config.Backend {
+	case "file":
+		backend = CaryatidLocalFileBackend{}
+	default:
+		backend = CaryatidBaseBackend{}
 	}
+	catalogManager.Configure(pp.config.CatalogRootUri, pp.config.Name, backend)
 
-	if err = json.Unmarshal(catalogBytes, &catalog); err != nil {
-		log.Println("Error trying to unmarshal catalog: ", err)
-		return
-	}
-
-	catalog = AddBoxToCatalog(catalog, boxArtifact)
-	log.Println(fmt.Sprintf("Catalog updated; new value is:\n%v", catalog))
-
-	jsonData, err := json.MarshalIndent(catalog, "", "  ")
+	err = catalogManager.AddBoxMetadataToCatalog(boxArtifact)
 	if err != nil {
-		log.Println("Error trying to marshal catalog: ", err)
+		log.Printf("Error adding box metadata to catalog: %v", err)
 		return
 	}
-	err = ioutil.WriteFile(catalogPath, jsonData, 0666)
+	catalog, err := catalogManager.GetCatalog()
 	if err != nil {
-		log.Println("Error trying to write catalog: ", err)
+		log.Printf("Error getting catalog: %v", err)
 		return
 	}
-	log.Println(fmt.Sprintf("Catalog updated on disk to reflect new value"))
+	log.Printf("Catalog updated; new value is:\n%v\n", catalog)
 
-	written, err := util.CopyFile(inBoxFile, boxPath)
+	err = catalogManager.SaveCatalog()
 	if err != nil {
-		log.Println(fmt.Sprintf("Error trying to copy '%v' to '%v' file: %v", inBoxFile, boxPath, err))
+		log.Printf("Error saving catalog: %v", err)
 		return
 	}
-	log.Println(fmt.Sprintf("Copied %v bytes from original path at '%v' to new location at '%v'", written, inBoxFile, boxPath))
+	log.Println("Catalog saved to backend")
+
+	err = backend.CopyBoxFile(boxArtifact.Path)
+	if err != nil {
+		return
+	}
+	log.Println("Box file copied successfully to backend")
 
 	return
 }
