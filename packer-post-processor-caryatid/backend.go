@@ -11,28 +11,31 @@ import (
 )
 
 // Manages Vagrant catalogs via various backends
-type VagrantCatalogManager struct {
+type BackendManager struct {
 	VagrantCatalogRootUri string
-	VagrantBox            BoxArtifact
-	VagrantCatalog        Catalog
+	VagrantCatalogName    string
+	VagrantCatalog        *Catalog
 	Backend               CaryatidBackend
 }
 
-func (vcm VagrantCatalogManager) Configure(catalogRootUri string, boxName string, backend CaryatidBackend) (err error) {
-	vcm.VagrantCatalogRootUri = catalogRootUri
-	vcm.Backend = backend
-	vcm.Backend.SetManager(vcm)
-	catalog, err := vcm.GetCatalog()
+func (bm *BackendManager) Configure(catalogRootUri string, catalogName string, backend *CaryatidBackend) (err error) {
+	bm.VagrantCatalogRootUri = catalogRootUri
+	bm.VagrantCatalogName = catalogName
+	bm.Backend = *backend
+	bm.Backend.SetManager(bm)
+	catalog, err := bm.GetCatalog()
 	if err != nil {
+		log.Printf("Error trying to get catalog: %v\n", err)
 		return
 	}
-	vcm.VagrantCatalog = catalog
+	bm.VagrantCatalog = &catalog
 	return
 }
 
-func (vcm VagrantCatalogManager) GetCatalog() (catalog Catalog, err error) {
-	catalogBytes, err := vcm.Backend.GetCatalogBytes()
+func (bm *BackendManager) GetCatalog() (catalog Catalog, err error) {
+	catalogBytes, err := bm.Backend.GetCatalogBytes()
 	if err != nil {
+		log.Printf("Error trying to get catalog bytes: %v\n", err)
 		return
 	}
 
@@ -41,19 +44,28 @@ func (vcm VagrantCatalogManager) GetCatalog() (catalog Catalog, err error) {
 	return
 }
 
-func (vcm VagrantCatalogManager) SaveCatalog() (err error) {
-	jsonData, err := json.MarshalIndent(vcm.VagrantCatalog, "", "  ")
+func (bm *BackendManager) SaveCatalog() (err error) {
+	jsonData, err := json.MarshalIndent(bm.VagrantCatalog, "", "  ")
 	if err != nil {
 		log.Println("Error trying to marshal catalog: ", err)
 		return
 	}
-	err = vcm.Backend.SetCatalogBytes(jsonData)
+	err = bm.Backend.SetCatalogBytes(jsonData)
+	if err != nil {
+		log.Printf("Error saving catalog: %v\n", err)
+	}
 	return
 }
 
-func (vcm VagrantCatalogManager) AddBoxMetadataToCatalog(box BoxArtifact) (err error) {
-	vcm.VagrantCatalog.AddBox(box)
-	vcm.SaveCatalog()
+func (bm *BackendManager) AddBoxMetadataToCatalog(box *BoxArtifact) (err error) {
+	if err = bm.VagrantCatalog.AddBox(box); err != nil {
+		log.Printf("AddBoxMetadataToCatalog(): Error adding box to catalog metadata object: %v", err)
+		return
+	}
+	if err = bm.SaveCatalog(); err != nil {
+		log.Printf("AddBoxMetadataToCatalog(): Error saving catalog: %v", err)
+		return
+	}
 	return
 }
 
@@ -63,7 +75,13 @@ The interface we use to deal with Caryatid backends
 It is intended that you put an anonymous CaryatidBaseBackend in each implemented Caryatid backend, which lets you take advantage of shared logic that doesn't change between backends.
 */
 type CaryatidBackend interface {
-	//// Functions that you *must* override
+	// Set the manager to an internal property so the backend can access its properties/methods
+	// This is an appropriate place for setup code, since it's always called from BackendManager.Configure()
+	SetManager(*BackendManager) error
+
+	// Return the manager from an internal property
+	// So far this is only used for testing
+	GetManager() (*BackendManager, error)
 
 	// Get the raw byte value held in the Vagrant catalog
 	GetCatalogBytes() ([]byte, error)
@@ -72,34 +90,38 @@ type CaryatidBackend interface {
 	SetCatalogBytes([]byte) error
 
 	// Copy the Vagrant box to the location referenced in the Vagrant catalog
-	CopyBoxFile(string) error
-
-	// Set the manager to an internal property so the backend can access its properties/methods
-	// This is an appropriate place for setup code, since it's always called from VagrantCatalogManager.Configure()
-	SetManager(VagrantCatalogManager) error
+	CopyBoxFile(*BoxArtifact) error
 }
 
 // A stub implementation of CaryatidBackend
 type CaryatidBaseBackend struct {
-	Manager VagrantCatalogManager
+	Manager *BackendManager
 }
 
-func (cb CaryatidBaseBackend) SetManager(manager VagrantCatalogManager) (err error) {
+func (cb *CaryatidBaseBackend) SetManager(manager *BackendManager) (err error) {
 	cb.Manager = manager
 	return
 }
 
-func (cb CaryatidBaseBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
+func (cb *CaryatidBaseBackend) GetManager() (manager *BackendManager, err error) {
+	manager = cb.Manager
+	if manager == nil {
+		err = fmt.Errorf("The Manager property was not set")
+	}
+	return
+}
+
+func (cb *CaryatidBaseBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }
 
-func (cb CaryatidBaseBackend) SetCatalogBytes(serializedCatalog []byte) (err error) {
+func (cb *CaryatidBaseBackend) SetCatalogBytes(serializedCatalog []byte) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }
 
-func (cb CaryatidBaseBackend) CopyBoxFile(boxPath string) (err error) {
+func (cb *CaryatidBaseBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }

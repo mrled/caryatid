@@ -59,6 +59,7 @@ func TestMain(m *testing.M) {
 func createTestBoxFile(filePath string, providerName string, compress bool) (err error) {
 	outFile, err := os.Create(filePath)
 	if err != nil {
+		fmt.Printf("Error trying to create the test box file at '%v': %v\n", filePath, err)
 		return
 	}
 	defer outFile.Close()
@@ -81,9 +82,11 @@ func createTestBoxFile(filePath string, providerName string, compress bool) (err
 	}
 
 	if err = tarWriter.WriteHeader(header); err != nil {
+		fmt.Printf("Error trying to write the header for the test box file: %v\n", err)
 		return
 	}
 	if _, err = tarWriter.Write([]byte(metaDataContents)); err != nil {
+		fmt.Printf("Error trying to write metadata contents for the test box file: %v\n", err)
 		return
 	}
 	return
@@ -143,6 +146,7 @@ func TestPostProcess(t *testing.T) {
 	pp.config.KeepInputArtifact = inkeepinput
 	pp.config.Name = testBoxName
 	pp.config.Version = "6.6.6"
+	pp.config.Backend = "file"
 
 	// Set up test: write files etc
 	err = createTestBoxFile(testArtifactPath, testProviderName, true)
@@ -184,7 +188,7 @@ func TestPostProcess(t *testing.T) {
 	if err = json.Unmarshal(resultCatalogData, &resultCatalog); err != nil {
 		t.Fatal("Unable to unmarshal result catalog")
 	}
-	if !expectedCatalog.Equals(resultCatalog) {
+	if !expectedCatalog.Equals(&resultCatalog) {
 		t.Fatal(fmt.Sprintf("Catalog data did not match expectations\n\tExpected: %v\n\tResult:   %v", expectedCatalog, resultCatalog))
 	}
 

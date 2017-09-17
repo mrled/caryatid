@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/packer/common"
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
+	"github.com/hashicorp/packer/packer/plugin"
 	"github.com/hashicorp/packer/template/interpolate"
 	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
 )
@@ -179,13 +180,13 @@ func (pp *CaryatidPostProcessor) Configure(raws ...interface{}) error {
 	return nil
 }
 
-func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (outArtifact packer.Artifact, keepInputArtifact bool, err error) {
+func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (packerArtifact packer.Artifact, keepInputArtifact bool, err error) {
 
 	keepInputArtifact = pp.config.KeepInputArtifact
 
 	inBoxFile, digest, provider, err := deriveArtifactInfo(artifact)
 	if err != nil {
-		log.Printf("Error deriving artifact information: %v", err)
+		log.Printf("PostProcess(): Error deriving artifact information: %v", err)
 		return
 	}
 
@@ -199,42 +200,53 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		"sha1",
 		digest,
 	}
-	outArtifact = &boxArtifact
+	packerArtifact = &boxArtifact
 
-	catalogManager := new(VagrantCatalogManager)
+	manager := new(BackendManager)
 	var backend CaryatidBackend
 	switch pp.config.Backend {
 	case "file":
-		backend = CaryatidLocalFileBackend{}
+		backend = &CaryatidLocalFileBackend{}
 	default:
-		backend = CaryatidBaseBackend{}
+		backend = &CaryatidBaseBackend{}
 	}
-	catalogManager.Configure(pp.config.CatalogRootUri, pp.config.Name, backend)
+	manager.Configure(pp.config.CatalogRootUri, pp.config.Name, &backend)
 
-	err = catalogManager.AddBoxMetadataToCatalog(boxArtifact)
+	err = manager.AddBoxMetadataToCatalog(&boxArtifact)
 	if err != nil {
-		log.Printf("Error adding box metadata to catalog: %v", err)
+		log.Printf("PostProcess(): Error adding box metadata to catalog: %v", err)
 		return
 	}
-	catalog, err := catalogManager.GetCatalog()
-	if err != nil {
-		log.Printf("Error getting catalog: %v", err)
-		return
-	}
-	log.Printf("Catalog updated; new value is:\n%v\n", catalog)
 
-	err = catalogManager.SaveCatalog()
+	err = manager.SaveCatalog()
 	if err != nil {
-		log.Printf("Error saving catalog: %v", err)
+		log.Printf("PostProcess(): Error saving catalog: %v", err)
 		return
 	}
-	log.Println("Catalog saved to backend")
+	log.Println("PostProcess(): Catalog saved to backend")
 
-	err = backend.CopyBoxFile(boxArtifact.Path)
+	catalog, err := manager.GetCatalog()
+	if err != nil {
+		log.Printf("PostProcess(): Error getting catalog: %v", err)
+		return
+	}
+	log.Printf("PostProcess(): New catalog is:\n%v\n", catalog)
+
+	err = backend.CopyBoxFile(&boxArtifact)
 	if err != nil {
 		return
 	}
-	log.Println("Box file copied successfully to backend")
+	log.Println("PostProcess(): Box file copied successfully to backend")
 
 	return
+}
+
+func main() {
+	server, err := plugin.Server()
+	if err != nil {
+		panic(err)
+	}
+
+	server.RegisterPostProcessor(&CaryatidPostProcessor{})
+	server.Serve()
 }

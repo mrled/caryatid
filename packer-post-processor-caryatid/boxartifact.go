@@ -61,3 +61,20 @@ func (artifact *BoxArtifact) GetParentUri() string {
 func (artifact *BoxArtifact) GetUri() string {
 	return fmt.Sprintf("%v/%v_%v_%v.box", artifact.GetParentUri(), artifact.Name, artifact.Version, artifact.Provider)
 }
+
+func (ba1 *BoxArtifact) Equals(ba2 *BoxArtifact) bool {
+	if ba1 == nil || ba2 == nil {
+		return false
+	}
+	if ba1 == ba2 {
+		return true
+	}
+	return (ba1.Path == ba2.Path &&
+		ba1.Name == ba2.Name &&
+		ba1.Description == ba2.Description &&
+		ba1.Version == ba2.Version &&
+		ba1.Provider == ba2.Provider &&
+		ba1.CatalogRootUri == ba2.CatalogRootUri &&
+		ba1.ChecksumType == ba2.ChecksumType &&
+		ba1.Checksum == ba2.Checksum)
+}
