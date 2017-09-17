@@ -18,7 +18,7 @@ In designing this plugin, it was helpful for me to outline how artifacts go from
     - The output filename is by default `packer_{{.BuildName}}_{{.Provider}}.box`, where the `BuildName` and `Provider` variables are filled in automatically. The Caryatid post-processor relies on this being the default, so make sure not to override it
 - Run the Caryatid post-processor
     - Just like Vagrant, if you have defined multiple builders, this post-processor will see one artifact per builder (and modified by the Vagrant post-processor)
-    - Note that **we rely on the default Vagrant output filename**, because that's how we determine provider information
+    - Note that we used to rely on the default Vagrant output filename to determine provider information, but since 1.0 we have determined it from the box file itself, which is an archive containing a `metadata.json` file that has the provider.
     - Based on configuration information specified in the packerfile, this will find a Vagrant catalog, add an entry for the relevant version and provider, and copy the Vagrant box file to a standard location linked from that catalog.
     - Note that by default it (and all Packer post-provisioners) will delete the input artifacts. This may be undesirable, for instance if your Vagrant catalog is on the Internet and you want to keep a local cache of it, so make sure to specify this in your packerfile.
 
