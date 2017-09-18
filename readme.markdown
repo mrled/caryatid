@@ -40,6 +40,8 @@ There are five configuration parameters:
     - See the "Output and directory structure" section for more information
 - `keep_input_artifact` (optional): Keep a copy of the Vagrant box at whatever location the Vagrant post-processor stored its output
     - By default, input artifacts are deleted; this suppresses that behavior, and will result in two copies of the Vagrant box on your filesystem - one where the Vagrant post-processor was configured to store its output, and one where Caryatid will copy it
+- `backend`: The name of the backend to use. Currently only `file` and `s3` are supported
+- `catalog_root_uri`: The URI of the backend. Interpreted individually by each backend
 
 That might look like this:
 
@@ -71,13 +73,21 @@ If you don't define a sequence using that extra set of square brackets, but inst
 
 See the [official post-processor documentation](https://www.packer.io/docs/templates/post-processors.html) for more details on sequences.
 
-### Note: Filesystem permissions
+## The `file` backend
+
+Requires URIs like `file:///path/to/somewhere` on Unix, or like `file:///C:\\path\\to\\somewhere` on Windows.
+
+### Filesystem permissions
 
 On Unix, files created by Caryatid honor the user's `umask`. If you intend to share these boxes with other users on your system, make sure to set a umask that lets those users read your files.
 
 TODO: Investigate default permissions on Windows.
 
 Permissions of existing files that Caryatid updates (like an existing catalog) are not changed.
+
+## The `s3` backend
+
+Requires URIs like `s3://bucket/path/to/resource`, which are intended to work the same way such URIs work for the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin. However, using the HTTP URIs (`http://s3.amazonaws.com/bucket/resource` or `http://bucket.s3.amazonaws.com/resource` or their `https` equivalents) is not currently supported.
 
 ## Output and directory structure
 
@@ -118,6 +128,10 @@ Vagrant is [supposed to support scp](https://github.com/mitchellh/vagrant/pull/1
 
 - Vagrant boxes hosted on S3 will work just fine as an HTTP catalog if the boxes can safely be made public
 - Otherwise, a Vagrant plugin like [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) can be used for the catalog
+
+URIs should be in the following format:
+
+    s3://bucket/resource
 
 ### Webserver backend
 
