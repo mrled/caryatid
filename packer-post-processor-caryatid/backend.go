@@ -98,30 +98,30 @@ type CaryatidBaseBackend struct {
 	Manager *BackendManager
 }
 
-func (cb *CaryatidBaseBackend) SetManager(manager *BackendManager) (err error) {
-	cb.Manager = manager
+func (backend *CaryatidBaseBackend) SetManager(manager *BackendManager) (err error) {
+	backend.Manager = manager
 	return
 }
 
-func (cb *CaryatidBaseBackend) GetManager() (manager *BackendManager, err error) {
-	manager = cb.Manager
+func (backend *CaryatidBaseBackend) GetManager() (manager *BackendManager, err error) {
+	manager = backend.Manager
 	if manager == nil {
 		err = fmt.Errorf("The Manager property was not set")
 	}
 	return
 }
 
-func (cb *CaryatidBaseBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
+func (backend *CaryatidBaseBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }
 
-func (cb *CaryatidBaseBackend) SetCatalogBytes(serializedCatalog []byte) (err error) {
+func (backend *CaryatidBaseBackend) SetCatalogBytes(serializedCatalog []byte) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }
 
-func (cb *CaryatidBaseBackend) CopyBoxFile(box *BoxArtifact) (err error) {
+func (backend *CaryatidBaseBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }

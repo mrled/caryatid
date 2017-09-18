@@ -8,50 +8,29 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/url"
 	"os"
 	"path"
-	"regexp"
 
 	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
 )
 
-// Get a local path like /tmp/asdf or C:\temp\asdf a file:/// URI
-func parseLocalPathFromUri(uristring string) (path string, err error) {
-	uri, err := url.Parse(uristring)
-	if err != nil {
-		return
-	}
-
-	// On Windows, a URI will sometimes be in the form 'file:///C:\\path\\to\\something'
-	// and uri.Path will have a leading slash, like '/C:\\path\\to\\something'.
-	// If it does, strip it out
-	matched, err := regexp.MatchString("^/[a-zA-Z]:", uri.Path)
-	if err != nil {
-		log.Printf("regexp.MatchString error: '%v'\n", err)
-	} else if matched {
-		path = uri.Path[1:len(uri.Path)]
-	} else {
-		path = uri.Path
-	}
-	return
-}
-
 type CaryatidLocalFileBackend struct {
-	VagrantCatalogPath string
-	Manager            *BackendManager
+	VagrantCatalogRootPath string
+	VagrantCatalogPath     string
+	Manager                *BackendManager
 }
 
-func (clfb *CaryatidLocalFileBackend) SetManager(manager *BackendManager) (err error) {
-	clfb.Manager = manager
+func (backend *CaryatidLocalFileBackend) SetManager(manager *BackendManager) (err error) {
+	backend.Manager = manager
 
-	catalogRootPath, err := parseLocalPathFromUri(clfb.Manager.VagrantCatalogRootUri)
+	catalogRootPath, err := util.ParseLocalPathFromUri(backend.Manager.VagrantCatalogRootUri)
 	if err != nil {
 		fmt.Printf("Error trying to parse local catalog path from URI: %v\n", err)
 		return
 	}
-	catalogFilename := fmt.Sprintf("%v.json", clfb.Manager.VagrantCatalogName)
-	clfb.VagrantCatalogPath = path.Join(catalogRootPath, catalogFilename)
+	catalogFilename := fmt.Sprintf("%v.json", backend.Manager.VagrantCatalogName)
+	backend.VagrantCatalogRootPath = catalogRootPath
+	backend.VagrantCatalogPath = path.Join(catalogRootPath, catalogFilename)
 
 	return
 }
@@ -64,10 +43,10 @@ func (cb *CaryatidLocalFileBackend) GetManager() (manager *BackendManager, err e
 	return
 }
 
-func (clfb *CaryatidLocalFileBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
-	catalogBytes, err = ioutil.ReadFile(clfb.VagrantCatalogPath)
+func (backend *CaryatidLocalFileBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
+	catalogBytes, err = ioutil.ReadFile(backend.VagrantCatalogPath)
 	if os.IsNotExist(err) {
-		log.Printf("No file at '%v'; starting with empty catalog\n", clfb.VagrantCatalogPath)
+		log.Printf("No file at '%v'; starting with empty catalog\n", backend.VagrantCatalogPath)
 		catalogBytes = []byte("{}")
 		err = nil
 	} else if err != nil {
@@ -76,8 +55,15 @@ func (clfb *CaryatidLocalFileBackend) GetCatalogBytes() (catalogBytes []byte, er
 	return
 }
 
-func (clfb *CaryatidLocalFileBackend) SetCatalogBytes(serializedCatalog []byte) (err error) {
-	err = ioutil.WriteFile(clfb.VagrantCatalogPath, serializedCatalog, 0666)
+func (backend *CaryatidLocalFileBackend) SetCatalogBytes(serializedCatalog []byte) (err error) {
+
+	err = os.MkdirAll(backend.VagrantCatalogRootPath, 0777)
+	if err != nil {
+		log.Printf("Error trying to create the catalog root path at '%v': %v\b", backend.VagrantCatalogRootPath, err)
+		return
+	}
+
+	err = ioutil.WriteFile(backend.VagrantCatalogPath, serializedCatalog, 0666)
 	if err != nil {
 		log.Println("Error trying to write catalog: ", err)
 		return
@@ -86,15 +72,15 @@ func (clfb *CaryatidLocalFileBackend) SetCatalogBytes(serializedCatalog []byte) 
 	return
 }
 
-func (clfb *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err error) {
+func (backend *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 
-	remoteBoxPath, err := parseLocalPathFromUri(box.GetUri())
+	remoteBoxPath, err := util.ParseLocalPathFromUri(box.GetUri())
 	if err != nil {
 		fmt.Printf("Error trying to parse local artifact path from URI: %v\n", err)
 		return
 	}
 
-	remoteBoxParentPath, err := parseLocalPathFromUri(box.GetParentUri())
+	remoteBoxParentPath, err := util.ParseLocalPathFromUri(box.GetParentUri())
 	if err != nil {
 		fmt.Printf("Error trying to parse local artifact parent path from URI: %v\n", err)
 		return

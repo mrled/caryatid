@@ -146,7 +146,7 @@ type Config struct {
 	// The root URI for a Vagrant catalog
 	// This is decoded separately by each backend
 	// If the catalog URL is file:///tmp/mybox.json, CatalogRootUri is "file:///tmp" (and the Name is "mybox")
-	CatalogRootUri string `mapstructure:"catalog_root"`
+	CatalogRootUri string `mapstructure:"catalog_root_uri"`
 
 	// Whether to keep the input artifact
 	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`

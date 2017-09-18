@@ -8,7 +8,10 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"io"
+	"log"
+	"net/url"
 	"os"
+	"regexp"
 )
 
 // PathExists tests whether path exists
@@ -58,5 +61,28 @@ func CopyFile(src string, dst string) (written int64, err error) {
 		return
 	}
 	err = out.Close()
+	return
+}
+
+// ParseLocalPathFromUri returns a local path from a URI
+// Unix example: file:///path/to/somewhere => /path/to/somewhere
+// Windows example: file:///C:\\path\\to\\somewhere => C:\path\to\somewhere
+func ParseLocalPathFromUri(uristring string) (path string, err error) {
+	uri, err := url.Parse(uristring)
+	if err != nil {
+		return
+	}
+
+	// On Windows, a URI will sometimes be in the form 'file:///C:\\path\\to\\something'
+	// and uri.Path will have a leading slash, like '/C:\\path\\to\\something'.
+	// If it does, strip it out
+	matched, err := regexp.MatchString("^/[a-zA-Z]:", uri.Path)
+	if err != nil {
+		log.Printf("regexp.MatchString error: '%v'\n", err)
+	} else if matched {
+		path = uri.Path[1:len(uri.Path)]
+	} else {
+		path = uri.Path
+	}
 	return
 }
