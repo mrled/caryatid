@@ -2,7 +2,7 @@
 The localfile backend, for dealing with a Vagrant catalog on a local filesystem
 */
 
-package main
+package caryatid
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
+	"github.com/mrled/caryatid/internal/util"
 )
 
 type CaryatidLocalFileBackend struct {

@@ -2,7 +2,7 @@
 The localfile backend, for dealing with a Vagrant catalog on a local filesystem
 */
 
-package main
+package caryatid
 
 import (
 	"bytes"

@@ -2,7 +2,7 @@
 The interface for a Caryatid backend
 */
 
-package main
+package caryatid
 
 import (
 	"encoding/json"

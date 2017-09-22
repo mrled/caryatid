@@ -3,7 +3,7 @@ Used to keep track of a box artifact that we have been passed
 Implements the packer.Artifact interface
 */
 
-package main
+package caryatid
 
 import (
 	"fmt"

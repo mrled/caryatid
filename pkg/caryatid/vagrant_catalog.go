@@ -23,7 +23,7 @@ Here's the JSON of an example catalog:
 	}
 */
 
-package main
+package caryatid
 
 import (
 	"fmt"

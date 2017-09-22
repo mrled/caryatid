@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/packer/packer"
-	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
+	"github.com/mrled/caryatid/internal/util"
 )
 
 // Integration tests

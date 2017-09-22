@@ -22,7 +22,9 @@ import (
 	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/packer/plugin"
 	"github.com/hashicorp/packer/template/interpolate"
-	"github.com/mrled/caryatid/packer-post-processor-caryatid/util"
+
+	"github.com/mrled/caryatid/internal/util"
+	"github.com/mrled/caryatid/pkg/caryatid"
 )
 
 // Determine the provider of a Vagrant box based on its metadata.json
@@ -190,7 +192,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		return
 	}
 
-	boxArtifact := BoxArtifact{
+	boxArtifact := caryatid.BoxArtifact{
 		inBoxFile,
 		pp.config.Name,
 		pp.config.Description,
@@ -202,13 +204,13 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	}
 	packerArtifact = &boxArtifact
 
-	manager := new(BackendManager)
-	var backend CaryatidBackend
+	manager := new(caryatid.BackendManager)
+	var backend caryatid.CaryatidBackend
 	switch pp.config.Backend {
 	case "file":
-		backend = &CaryatidLocalFileBackend{}
+		backend = &caryatid.CaryatidLocalFileBackend{}
 	default:
-		backend = &CaryatidBaseBackend{}
+		backend = &caryatid.CaryatidBaseBackend{}
 	}
 	manager.Configure(pp.config.CatalogRootUri, pp.config.Name, &backend)
 
