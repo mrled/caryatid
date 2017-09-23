@@ -100,3 +100,7 @@ func (backend *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err erro
 	log.Println(fmt.Sprintf("Copied %v bytes from original path at '%v' to new location at '%v'", written, box.Path, remoteBoxPath))
 	return
 }
+
+func (backend *CaryatidLocalFileBackend) String() string {
+	return "LocalFile"
+}

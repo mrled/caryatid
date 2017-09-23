@@ -91,6 +91,9 @@ type CaryatidBackend interface {
 
 	// Copy the Vagrant box to the location referenced in the Vagrant catalog
 	CopyBoxFile(*BoxArtifact) error
+
+	// Return the canonical name of the backend
+	String() string
 }
 
 // A stub implementation of CaryatidBackend
@@ -124,4 +127,8 @@ func (backend *CaryatidBaseBackend) SetCatalogBytes(serializedCatalog []byte) (e
 func (backend *CaryatidBaseBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
+}
+
+func (backend *CaryatidBaseBackend) String() string {
+	return "Base"
 }

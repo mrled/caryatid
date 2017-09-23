@@ -44,6 +44,10 @@ func (cb *CaryatidTestBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 	return nil
 }
 
+func (backend *CaryatidTestBackend) String() string {
+	return "Test"
+}
+
 func TestCaryatidTestBackend_ImplementsCaryatidBackend(t *testing.T) {
 	var _ CaryatidBackend = new(CaryatidTestBackend)
 }
