@@ -64,9 +64,8 @@ func TestBackendManagerConfigure(t *testing.T) {
 		"sha1",
 		"0xDECAFBAD",
 	}
-	manager := new(BackendManager)
 	var backend CaryatidBackend = &CaryatidTestBackend{}
-	manager.Configure(cataRootUri, testBox.Name, &backend)
+	manager := NewBackendManager(cataRootUri, testBox.Name, &backend)
 
 	if manager.VagrantCatalogRootUri != cataRootUri {
 		t.Fatal("VagrantCatalogRootUri property not set correctly")
@@ -84,8 +83,12 @@ func TestBackendManagerConfigure(t *testing.T) {
 		},
 	}
 
-	if !manager.VagrantCatalog.Equals(&Catalog{}) {
-		t.Fatalf("VagrantCatalog property not set properly; result was\n%v\nbut we expected\n%v\n", manager.VagrantCatalog, expectedCata)
+	cata, err := manager.GetCatalog()
+	if err != nil {
+		t.Fatalf("Could not retrieve catalog from backend: %v", err)
+	}
+	if !cata.Equals(&Catalog{}) {
+		t.Fatalf("VagrantCatalog property not set properly; result was\n%v\nbut we expected\n%v\n", cata, expectedCata)
 	}
 
 	if manager.Backend != backend {

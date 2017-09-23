@@ -204,7 +204,6 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	}
 	packerArtifact = &boxArtifact
 
-	manager := new(caryatid.BackendManager)
 	var backend caryatid.CaryatidBackend
 	switch pp.config.Backend {
 	case "file":
@@ -212,17 +211,11 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	default:
 		backend = &caryatid.CaryatidBaseBackend{}
 	}
-	manager.Configure(pp.config.CatalogRootUri, pp.config.Name, &backend)
+	manager := caryatid.NewBackendManager(pp.config.CatalogRootUri, pp.config.Name, &backend)
 
 	err = manager.AddBoxMetadataToCatalog(&boxArtifact)
 	if err != nil {
 		log.Printf("PostProcess(): Error adding box metadata to catalog: %v", err)
-		return
-	}
-
-	err = manager.SaveCatalog()
-	if err != nil {
-		log.Printf("PostProcess(): Error saving catalog: %v", err)
 		return
 	}
 	log.Println("PostProcess(): Catalog saved to backend")

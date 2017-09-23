@@ -14,21 +14,16 @@ import (
 type BackendManager struct {
 	VagrantCatalogRootUri string
 	VagrantCatalogName    string
-	VagrantCatalog        *Catalog
 	Backend               CaryatidBackend
 }
 
-func (bm *BackendManager) Configure(catalogRootUri string, catalogName string, backend *CaryatidBackend) (err error) {
-	bm.VagrantCatalogRootUri = catalogRootUri
-	bm.VagrantCatalogName = catalogName
-	bm.Backend = *backend
-	bm.Backend.SetManager(bm)
-	catalog, err := bm.GetCatalog()
-	if err != nil {
-		log.Printf("Error trying to get catalog: %v\n", err)
-		return
+func NewBackendManager(catalogRootUri string, catalogName string, backend *CaryatidBackend) (bm *BackendManager) {
+	bm = &BackendManager{
+		catalogRootUri,
+		catalogName,
+		*backend,
 	}
-	bm.VagrantCatalog = &catalog
+	bm.Backend.SetManager(bm)
 	return
 }
 
@@ -44,8 +39,8 @@ func (bm *BackendManager) GetCatalog() (catalog Catalog, err error) {
 	return
 }
 
-func (bm *BackendManager) SaveCatalog() (err error) {
-	jsonData, err := json.MarshalIndent(bm.VagrantCatalog, "", "  ")
+func (bm *BackendManager) SaveCatalog(catalog Catalog) (err error) {
+	jsonData, err := json.MarshalIndent(catalog, "", "  ")
 	if err != nil {
 		log.Println("Error trying to marshal catalog: ", err)
 		return
@@ -58,11 +53,16 @@ func (bm *BackendManager) SaveCatalog() (err error) {
 }
 
 func (bm *BackendManager) AddBoxMetadataToCatalog(box *BoxArtifact) (err error) {
-	if err = bm.VagrantCatalog.AddBox(box); err != nil {
+	catalog, err := bm.GetCatalog()
+	if err != nil {
+		log.Printf("AddBoxMetadataToCatalog(): Error retrieving catalog from backend: %v", err)
+		return
+	}
+	if err = catalog.AddBox(box); err != nil {
 		log.Printf("AddBoxMetadataToCatalog(): Error adding box to catalog metadata object: %v", err)
 		return
 	}
-	if err = bm.SaveCatalog(); err != nil {
+	if err = bm.SaveCatalog(catalog); err != nil {
 		log.Printf("AddBoxMetadataToCatalog(): Error saving catalog: %v", err)
 		return
 	}
