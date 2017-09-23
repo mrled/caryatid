@@ -14,7 +14,7 @@ func NewBackend(name string) (backend CaryatidBackend, err error) {
 	switch name {
 	case "Base":
 		backend = &CaryatidBaseBackend{}
-	case "File":
+	case "LocalFile":
 		backend = &CaryatidLocalFileBackend{}
 	case "S3":
 		backend = &CaryatidS3Backend{}

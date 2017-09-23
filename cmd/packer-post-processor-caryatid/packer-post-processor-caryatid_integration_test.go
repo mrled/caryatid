@@ -148,7 +148,7 @@ func TestPostProcess(t *testing.T) {
 	pp.config.KeepInputArtifact = inkeepinput
 	pp.config.Name = testBoxName
 	pp.config.Version = "6.6.6"
-	pp.config.Backend = "File"
+	pp.config.Backend = "LocalFile"
 
 	// Set up test: write files etc
 	err = createTestBoxFile(testArtifactPath, testProviderName, true)
