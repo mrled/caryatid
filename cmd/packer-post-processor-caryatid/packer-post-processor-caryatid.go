@@ -205,11 +205,10 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	packerArtifact = &boxArtifact
 
 	var backend caryatid.CaryatidBackend
-	switch pp.config.Backend {
-	case "file":
-		backend = &caryatid.CaryatidLocalFileBackend{}
-	default:
-		backend = &caryatid.CaryatidBaseBackend{}
+	backend, err = caryatid.NewBackend(pp.config.Backend)
+	if err != nil {
+		log.Printf("PostProcess(): Error trying to get backend: %v", err)
+		return
 	}
 	manager := caryatid.NewBackendManager(pp.config.CatalogRootUri, pp.config.Name, &backend)
 

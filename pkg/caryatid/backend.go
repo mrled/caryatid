@@ -10,6 +10,20 @@ import (
 	"log"
 )
 
+func NewBackend(name string) (backend CaryatidBackend, err error) {
+	switch name {
+	case "Base":
+		backend = &CaryatidBaseBackend{}
+	case "File":
+		backend = &CaryatidLocalFileBackend{}
+	case "S3":
+		backend = &CaryatidS3Backend{}
+	default:
+		err = fmt.Errorf("No known backend named '%v'", name)
+	}
+	return
+}
+
 // Manages Vagrant catalogs via various backends
 type BackendManager struct {
 	VagrantCatalogRootUri string
