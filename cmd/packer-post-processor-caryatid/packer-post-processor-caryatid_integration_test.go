@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/packer/packer"
+
 	"github.com/mrled/caryatid/internal/util"
+	"github.com/mrled/caryatid/pkg/caryatid"
 )
 
 // Integration tests
@@ -146,7 +148,7 @@ func TestPostProcess(t *testing.T) {
 	pp.config.KeepInputArtifact = inkeepinput
 	pp.config.Name = testBoxName
 	pp.config.Version = "6.6.6"
-	pp.config.Backend = "file"
+	pp.config.Backend = "File"
 
 	// Set up test: write files etc
 	err = createTestBoxFile(testArtifactPath, testProviderName, true)
@@ -162,7 +164,7 @@ func TestPostProcess(t *testing.T) {
 	if keepinputresult != inkeepinput {
 		t.Fatal(fmt.Sprintf("Failed to keep input consistently"))
 	}
-	if outArt.BuilderId() != BuilderId {
+	if outArt.BuilderId() != caryatid.BuilderId {
 		t.Fatal("BuildId does not match")
 	}
 
@@ -179,8 +181,8 @@ func TestPostProcess(t *testing.T) {
 		t.Fatal("Error trying to read the test catalog: ", err)
 	}
 	var (
-		expectedCatalog Catalog
-		resultCatalog   Catalog
+		expectedCatalog caryatid.Catalog
+		resultCatalog   caryatid.Catalog
 	)
 	if err = json.Unmarshal([]byte(expectedCatalogStr), &expectedCatalog); err != nil {
 		t.Fatal("Unable to unmarshal expected catalog")

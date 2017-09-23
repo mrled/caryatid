@@ -90,7 +90,7 @@ It is intended that you put an anonymous CaryatidBaseBackend in each implemented
 */
 type CaryatidBackend interface {
 	// Set the manager to an internal property so the backend can access its properties/methods
-	// This is an appropriate place for setup code, since it's always called from BackendManager.Configure()
+	// This is an appropriate place for setup code, since it's always called from NewBackendManager()
 	SetManager(*BackendManager) error
 
 	// Return the manager from an internal property

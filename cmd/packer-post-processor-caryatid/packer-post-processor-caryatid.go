@@ -207,21 +207,21 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	var backend caryatid.CaryatidBackend
 	backend, err = caryatid.NewBackend(pp.config.Backend)
 	if err != nil {
-		log.Printf("PostProcess(): Error trying to get backend: %v", err)
+		log.Printf("PostProcess(): Error trying to get backend: %v\n", err)
 		return
 	}
 	manager := caryatid.NewBackendManager(pp.config.CatalogRootUri, pp.config.Name, &backend)
 
 	err = manager.AddBoxMetadataToCatalog(&boxArtifact)
 	if err != nil {
-		log.Printf("PostProcess(): Error adding box metadata to catalog: %v", err)
+		log.Printf("PostProcess(): Error adding box metadata to catalog: %v\n", err)
 		return
 	}
 	log.Println("PostProcess(): Catalog saved to backend")
 
 	catalog, err := manager.GetCatalog()
 	if err != nil {
-		log.Printf("PostProcess(): Error getting catalog: %v", err)
+		log.Printf("PostProcess(): Error getting catalog: %v\n", err)
 		return
 	}
 	log.Printf("PostProcess(): New catalog is:\n%v\n", catalog)
