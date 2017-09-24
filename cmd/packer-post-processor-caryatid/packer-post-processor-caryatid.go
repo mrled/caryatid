@@ -74,7 +74,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 
 	keepInputArtifact = pp.config.KeepInputArtifact
 
-	inBoxFile, digest, provider, err := caryatid.DeriveArtifactInfoFromPackerArtifact(artifact)
+	inBoxFile, digestType, digest, provider, err := caryatid.DeriveArtifactInfoFromPackerArtifact(artifact)
 	if err != nil {
 		log.Printf("PostProcess(): Error deriving artifact information: %v", err)
 		return
@@ -87,7 +87,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		pp.config.Version,
 		provider,
 		pp.config.CatalogRootUri,
-		"sha1",
+		digestType,
 		digest,
 	}
 	packerArtifact = &boxArtifact

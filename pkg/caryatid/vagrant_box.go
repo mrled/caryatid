@@ -84,12 +84,14 @@ func DetermineProvider(boxFilePath string) (result string, err error) {
 	return
 }
 
-func DeriveArtifactInfoFromBoxFile(boxFile string) (digest string, provider string, err error) {
+func DeriveArtifactInfoFromBoxFile(boxFile string) (digestType string, digest string, provider string, err error) {
 	if !strings.HasSuffix(boxFile, ".box") {
 		err = fmt.Errorf("Input artifact '%v' doesn't have a '.box' file extension, and is therefore not a valid Vagrant box", boxFile)
 		return
 	}
 	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", boxFile))
+
+	digestType = "sha1"
 
 	digest, err = util.Sha1sum(boxFile)
 	if err != nil {
@@ -109,7 +111,7 @@ func DeriveArtifactInfoFromBoxFile(boxFile string) (digest string, provider stri
 }
 
 // func DerivePackerArtifactInfo(artifact packer.Artifact) (boxFile string, digest string, provider string, err error) {
-func DeriveArtifactInfoFromPackerArtifact(artifact packer.Artifact) (boxFile string, digest string, provider string, err error) {
+func DeriveArtifactInfoFromPackerArtifact(artifact packer.Artifact) (boxFile string, digestType string, digest string, provider string, err error) {
 	if len(artifact.Files()) != 1 {
 		err = fmt.Errorf(
 			"Wrong number of files in the input artifact; expected exactly 1 file but found %v:\n%v",
@@ -124,6 +126,6 @@ func DeriveArtifactInfoFromPackerArtifact(artifact packer.Artifact) (boxFile str
 	}
 	log.Println(fmt.Sprintf("Found input Vagrant .box file: '%v'", boxFile))
 
-	digest, provider, err = DeriveArtifactInfoFromBoxFile(boxFile)
+	digestType, digest, provider, err = DeriveArtifactInfoFromBoxFile(boxFile)
 	return
 }
