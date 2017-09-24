@@ -8,8 +8,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"path"
+	"path/filepath"
+	"regexp"
 
 	"github.com/mrled/caryatid/internal/util"
 )
@@ -23,7 +26,7 @@ type CaryatidLocalFileBackend struct {
 func (backend *CaryatidLocalFileBackend) SetManager(manager *BackendManager) (err error) {
 	backend.Manager = manager
 
-	catalogRootPath, err := util.ParseLocalPathFromUri(backend.Manager.VagrantCatalogRootUri)
+	catalogRootPath, err := getValidLocalPath(backend.Manager.VagrantCatalogRootUri)
 	if err != nil {
 		fmt.Printf("Error trying to parse local catalog path from URI: %v\n", err)
 		return
@@ -74,13 +77,13 @@ func (backend *CaryatidLocalFileBackend) SetCatalogBytes(serializedCatalog []byt
 
 func (backend *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 
-	remoteBoxPath, err := util.ParseLocalPathFromUri(box.GetUri())
+	remoteBoxPath, err := getValidLocalPath(box.GetUri())
 	if err != nil {
 		fmt.Printf("Error trying to parse local artifact path from URI: %v\n", err)
 		return
 	}
 
-	remoteBoxParentPath, err := util.ParseLocalPathFromUri(box.GetParentUri())
+	remoteBoxParentPath, err := getValidLocalPath(box.GetParentUri())
 	if err != nil {
 		fmt.Printf("Error trying to parse local artifact parent path from URI: %v\n", err)
 		return
@@ -101,6 +104,38 @@ func (backend *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err erro
 	return
 }
 
-func (backend *CaryatidLocalFileBackend) String() string {
-	return "LocalFile"
+func (backend *CaryatidLocalFileBackend) Scheme() string {
+	return "file"
+}
+
+// Get a valid local path from a URI
+// Converts URI paths (with '/' separator) to Windows paths (with '\' separator) when on Windows
+// On Windows, a URI will sometimes be in the form 'file:///C:/path/to/something' (or 'file:///C:\\path\\to\\something')
+func getValidLocalPath(uri string) (outpath string, err error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return
+	}
+
+	outpath = u.Path
+	if u.Path == "" {
+		err = fmt.Errorf("No valid path information was provided in the URI '%v'", uri)
+		return
+	}
+
+	// On Windows, valid URIs look like file:///C:/whatever or file:///C:\\whatever
+	// The naivePath variable will contain that leading slash, like "/C:/whatever" or "/C:\\whatever"
+	// If the path looks like that, strip the leading slash
+	matched, err := regexp.MatchString("^/[a-zA-Z]:", outpath)
+	if err != nil {
+		return
+	} else if matched {
+		outpath = outpath[1:len(outpath)]
+	}
+
+	// Get an absolute path
+	// If on Windows, replaces any forward slashes in the URI with backslashes
+	outpath = filepath.Clean(outpath)
+
+	return
 }

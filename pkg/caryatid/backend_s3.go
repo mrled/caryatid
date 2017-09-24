@@ -127,6 +127,6 @@ func (backend *CaryatidS3Backend) CopyBoxFile(box *BoxArtifact) (err error) {
 	return
 }
 
-func (backend *CaryatidS3Backend) String() string {
-	return "S3"
+func (backend *CaryatidS3Backend) Scheme() string {
+	return "s3"
 }

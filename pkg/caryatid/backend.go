@@ -8,19 +8,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 )
 
 func NewBackend(name string) (backend CaryatidBackend, err error) {
 	switch name {
-	case "Base":
-		backend = &CaryatidBaseBackend{}
-	case "LocalFile":
+	case "file":
 		backend = &CaryatidLocalFileBackend{}
-	case "S3":
+	case "s3":
 		backend = &CaryatidS3Backend{}
 	default:
-		err = fmt.Errorf("No known backend named '%v'", name)
+		err = fmt.Errorf("No known backend with name '%v'", name)
 	}
+	return
+}
+
+func NewBackendFromUri(uri string) (backend CaryatidBackend, err error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		err = fmt.Errorf("Error trying to parse URI '%v': %v\n", uri, err)
+		return
+	}
+	backend, err = NewBackend(u.Scheme)
 	return
 }
 
@@ -106,8 +115,9 @@ type CaryatidBackend interface {
 	// Copy the Vagrant box to the location referenced in the Vagrant catalog
 	CopyBoxFile(*BoxArtifact) error
 
-	// Return the canonical name of the backend
-	String() string
+	// Return the scheme as would be used in the URI for the backend,
+	// such as "file" for a "file:///tmp/catalog.json" catalog
+	Scheme() string
 }
 
 // A stub implementation of CaryatidBackend
@@ -143,6 +153,6 @@ func (backend *CaryatidBaseBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 	return
 }
 
-func (backend *CaryatidBaseBackend) String() string {
-	return "Base"
+func (backend *CaryatidBaseBackend) Scheme() string {
+	return ""
 }

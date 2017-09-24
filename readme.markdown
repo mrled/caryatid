@@ -73,21 +73,15 @@ If you don't define a sequence using that extra set of square brackets, but inst
 
 See the [official post-processor documentation](https://www.packer.io/docs/templates/post-processors.html) for more details on sequences.
 
-## The `file` backend
+## Backends
 
-Requires URIs like `file:///path/to/somewhere` on Unix, or like `file:///C:\\path\\to\\somewhere` on Windows.
-
-### Filesystem permissions
-
-On Unix, files created by Caryatid honor the user's `umask`. If you intend to share these boxes with other users on your system, make sure to set a umask that lets those users read your files.
-
-TODO: Investigate default permissions on Windows.
-
-Permissions of existing files that Caryatid updates (like an existing catalog) are not changed.
-
-## The `s3` backend
-
-Requires URIs like `s3://bucket/path/to/resource`, which are intended to work the same way such URIs work for the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin. However, using the HTTP URIs (`http://s3.amazonaws.com/bucket/resource` or `http://bucket.s3.amazonaws.com/resource` or their `https` equivalents) is not currently supported.
+- LocalFile:
+    - Requires URIs like `file:///path/to/somewhere` on Unix, or `file:///C:\\path\\to\\somewhere` on Windows
+    - Files created with the LocalFile backend conform to OS default permissions. On Unix, this means it honors `umask`; on Windows, this means it inherits directory permissions. When modifying a file, such as adding a box to an existing catalog, permissions of the existing file are not changed.
+- S3:
+    - Requires URIs like `s3://bucket/key`, where `key` may include a directory name, e.g. in `s3://bucket/some/sub/path`, `some/sub/path` is the `key`. These URIs are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin and may be used in Vagrant files where that plugin is installed
+    - Note that HTTP URIs like `http://s3.amazonaws.com/bucket/resource` are not supported, even though they are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin.
+    - S3 permissions are not modified
 
 ## Output and directory structure
 
@@ -124,20 +118,9 @@ This can be consumed in a Vagrant file by using the JSON catalog as the box URL 
 
 Vagrant is [supposed to support scp](https://github.com/mitchellh/vagrant/pull/1041), but [apparently doesn't bundle a properly-built `curl` yet](https://github.com/mitchellh/vagrant-installers/issues/30). This means you may need to build your own `curl` that supports scp, and possibly even replace your system-supplied curl with that one, in order to use catalogs hosted on scp with Vagrant. (Note that Caryatid will not rely on curl, so even if your curl is old, we will still be able to push to scp backends; the only concern is whether your system's Vagrant can pull from them by default or not.)
 
-### S3 backend
-
-- Vagrant boxes hosted on S3 will work just fine as an HTTP catalog if the boxes can safely be made public
-- Otherwise, a Vagrant plugin like [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) can be used for the catalog
-
-URIs should be in the following format:
-
-    s3://bucket/resource
-
 ### Webserver backend
 
-Some sort of webserver mode would be nice, and is in line with the no server-side logic goal. Probably require an scp url for doing uploads in addition to an http url for vagrant to fetch the boxes? It does look like Vagrant supports HTTP basic authentication, so downloads for HTTP/HTTPS catalogs could be protected.
-
-WebDAV is a possibility, but I'm not sure whether it would be truly valuable or not - I don't see a lot of WebDAV servers out in the wild. On the other hand, it would be conceptually simpler than a webserver mode that requires an scp upload mechanism to supplement it, and it would support HTTP basic auth as well.
+WebDAV is a possibility, but I'm not sure whether it would be truly valuable or not - I don't see a lot of WebDAV servers out in the wild.
 
 ### Command line manager tool
 
@@ -151,3 +134,9 @@ Write a command line tool that can be used to inspect and modify the catalog.
 Particularly for S3 storage, this will be useful to not only know what is available, but also to save money by deleting ancient unused versions of boxes.
 
 If we add an HTTP backend, the tool would also be useful for other Vagrant catalogs that are not managed by Caryatid.
+
+### Separate backend and frontend URIs
+
+For a webserver backend, we could provide a backend SCP or LocalFile URI, and a frontend HTTP URI. For an S3 backend where boxes can be public, we could provide a backend S3 and a frontend HTTP URI (note that in the S3/HTTP case, the boxes must be public, since S3 doesn't support HTTP basic auth). In these cases, we wouldn't need to support WebDAV (which provides create/update/delete access), only vanilla HTTP/HTTPS (which of course can provide read access), because we could use backends we already ahve like LocalFile that provide C/U/D access.
+
+This would let us keep with our goal of no serverside logic, while allowing for more frontends.

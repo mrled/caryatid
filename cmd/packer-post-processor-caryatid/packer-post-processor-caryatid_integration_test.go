@@ -94,42 +94,6 @@ func createTestBoxFile(filePath string, providerName string, compress bool) (err
 	return
 }
 
-func TestDetermineProvider(t *testing.T) {
-	var (
-		err                error
-		resultProviderName string
-		testProviderName   = "TESTPROVIDER"
-		testGzipArtifact   = path.Join(integrationTestDir, "testDetProvGz.box")
-		testTarArtifact    = path.Join(integrationTestDir, "testDetProvTar.box")
-	)
-
-	err = createTestBoxFile(testGzipArtifact, testProviderName, true)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: %v", err))
-	}
-
-	resultProviderName, err = determineProvider(testGzipArtifact)
-	if err != nil {
-		t.Fatal("Error trying to determine provider: ", err)
-	}
-	if resultProviderName != testProviderName {
-		t.Fatal("Expected provider name does not match result provider name: ", testProviderName, resultProviderName)
-	}
-
-	err = createTestBoxFile(testTarArtifact, testProviderName, false)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: %v", err))
-	}
-
-	resultProviderName, err = determineProvider(testTarArtifact)
-	if err != nil {
-		t.Fatal("Error trying to determine provider: ", err)
-	}
-	if resultProviderName != testProviderName {
-		t.Fatal("Expected provider name does not match result provider name: ", testProviderName, resultProviderName)
-	}
-}
-
 func TestPostProcess(t *testing.T) {
 	var (
 		err                  error
@@ -148,7 +112,6 @@ func TestPostProcess(t *testing.T) {
 	pp.config.KeepInputArtifact = inkeepinput
 	pp.config.Name = testBoxName
 	pp.config.Version = "6.6.6"
-	pp.config.Backend = "LocalFile"
 
 	// Set up test: write files etc
 	err = createTestBoxFile(testArtifactPath, testProviderName, true)
