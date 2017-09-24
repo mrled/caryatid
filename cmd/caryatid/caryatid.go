@@ -13,7 +13,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
+	"regexp"
 
 	"github.com/mrled/caryatid/pkg/caryatid"
 )
@@ -40,6 +43,21 @@ func strEnsureArrayContainsAll(refArray []string, mustContain []string, panicFor
 	}
 }
 
+// Test whether a string is a valid URI
+func testValidUri(uri string) bool {
+	matched, err := regexp.MatchString("^[a-zA-Z0-9]+://", uri)
+	if matched && err != nil {
+		return true
+	}
+	return false
+}
+
+func convertLocalPathToUri(path string) (uri string, err error) {
+	abspath, err := filepath.Abs(path)
+	uri = fmt.Sprintf("file://%v", abspath)
+	return
+}
+
 // func ensure
 
 func main() {
@@ -55,19 +73,23 @@ func main() {
 		"catalog",
 		"",
 		"URI for the Vagrant Catalog to operate on")
-	backendFlag := flag.String(
-		"backend",
-		"",
-		fmt.Sprintf("The name of the backend to use, of %v", "FIXME"))
 
-	/*boxFlag :=*/ flag.String(
+	boxFlag := flag.String(
 		"box", "", "Local path to a box file")
-	/*versionFlag :=*/ flag.String(
-		"version", "",
+
+	// TODO: Validate -version when adding a box
+	versionFlag := flag.String(
+		"version",
+		"",
 		"A version specifier. When querying boxes or deleting a box, this restricts the query to only the versions matched, and its value may include specifiers such as less-than signs, like '<=1.2.3'. When adding a box, the version must be exact, and such specifiers are not supported.")
+	descriptionFlag := flag.String(
+		"description",
+		"",
+		"A description for a box in the Vagrant catalog")
 
 	/*providerFlag :=*/ flag.String(
-		"provider", "",
+		"provider",
+		"",
 		"The name of a provider. When querying boxes or deleting a box, this restricts the query to only the providers matched, and its value may include asterisks to glob such as '*-iso'. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
 
 	nameFlag := flag.String(
@@ -78,19 +100,22 @@ func main() {
 
 	globalRequiredFlags := []string{
 		"catalog",
-		"backend",
 	}
 	showRequiredFlags := []string{}
 	queryRequiredFlags := []string{}
 	addRequiredFlags := []string{
 		"box",
+		"description",
 		"version",
+		"name",
 	}
 	deleteRequiredFlags := []string{
 		"box",
 		"version",
 		"provider",
 	}
+
+	var err error
 
 	// Create an array of all flags passed by the user
 	// Note that this will not include flags with default values
@@ -100,27 +125,63 @@ func main() {
 
 	strEnsureArrayContainsAll(passedFlags, globalRequiredFlags, "Missing required flag: '-%v'")
 
-	backend, err := caryatid.NewBackend(*backendFlag)
-	if err != nil {
-		fmt.Printf("Error retrieving backend '%v': %v\n", *backendFlag, err)
+	// Handle a special case where the -catalog is a local path, rather than a file:// URI
+	var catalogUri string
+	if testValidUri(*catalogFlag) {
+		catalogUri = *catalogFlag
+	} else {
+		catalogUri, err = convertLocalPathToUri(*catalogFlag)
+		if err != nil {
+			log.Printf("Error converting catalog path '%v' to URI: %v", *catalogFlag, err)
+			os.Exit(1)
+		}
 	}
-	manager := caryatid.NewBackendManager(*catalogFlag, *nameFlag, &backend)
+	log.Printf("Using catalog URI of '%v'", catalogUri)
+
+	backend, err := caryatid.NewBackendFromUri(catalogUri)
+	if err != nil {
+		log.Printf("Error retrieving backend: %v\n", err)
+		os.Exit(1)
+	}
+
+	manager := caryatid.NewBackendManager(catalogUri, *nameFlag, &backend)
+	cata, err := manager.GetCatalog()
+	if err != nil {
+		log.Printf("Error getting catalog: %v\n", err)
+		os.Exit(1)
+	}
 
 	switch *actionFlag {
 	case "show":
 		strEnsureArrayContainsAll(passedFlags, showRequiredFlags, "Missing required flag for '-action show': '-%v'")
-		cata, err := manager.GetCatalog()
-		if err != nil {
-			fmt.Printf("Error getting catalog: %v\n", err)
-			os.Exit(1)
-		}
 		fmt.Printf("%v\n", cata)
 	case "query":
 		strEnsureArrayContainsAll(passedFlags, queryRequiredFlags, "Missing required flag for '-action query': '-%v'")
 		panic("NOT IMPLEMENTED")
 	case "add":
 		strEnsureArrayContainsAll(passedFlags, addRequiredFlags, "Missing required flag for '-action add': '-%v'")
-		panic("NOT IMPLEMENTED")
+
+		digestType, digest, provider, err := caryatid.DeriveArtifactInfoFromBoxFile(*boxFlag)
+		if err != nil {
+			panic(fmt.Sprintf("Could not determine artifact info: %v", err))
+		}
+
+		boxArtifact := caryatid.BoxArtifact{
+			*boxFlag,
+			*nameFlag,
+			*descriptionFlag,
+			*versionFlag,
+			provider,
+			catalogUri,
+			digestType,
+			digest,
+		}
+
+		err = backend.CopyBoxFile(&boxArtifact)
+		if err != nil {
+			return
+		}
+		log.Println("PostProcess(): Box file copied successfully to backend")
 	case "delete":
 		strEnsureArrayContainsAll(passedFlags, deleteRequiredFlags, "Missing required flag for '-action delete': '-%v'")
 		panic("NOT IMPLEMENTED")
