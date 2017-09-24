@@ -87,7 +87,7 @@ func main() {
 		"",
 		"A description for a box in the Vagrant catalog")
 
-	/*providerFlag :=*/ flag.String(
+	providerFlag := flag.String(
 		"provider",
 		"",
 		"The name of a provider. When querying boxes or deleting a box, this restricts the query to only the providers matched, and its value may include asterisks to glob such as '*-iso'. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
@@ -100,6 +100,10 @@ func main() {
 
 	globalRequiredFlags := []string{
 		"catalog",
+	}
+	createTestBoxRequiredFlags := []string{
+		"box",
+		"provider",
 	}
 	showRequiredFlags := []string{}
 	queryRequiredFlags := []string{}
@@ -152,13 +156,19 @@ func main() {
 	}
 
 	switch *actionFlag {
+
 	case "show":
 		strEnsureArrayContainsAll(passedFlags, showRequiredFlags, "Missing required flag for '-action show': '-%v'")
 		fmt.Printf("%v\n", cata)
-	case "query":
-		strEnsureArrayContainsAll(passedFlags, queryRequiredFlags, "Missing required flag for '-action query': '-%v'")
-		panic("NOT IMPLEMENTED")
+
+	case "create-test-box":
+		strEnsureArrayContainsAll(passedFlags, createTestBoxRequiredFlags, "Missing required flag for '-action create-test-box': '-%v'")
+		caryatid.CreateTestBoxFile(*boxFlag, *providerFlag, true)
+		log.Printf("Box file created at '%v'", *boxFlag)
+
 	case "add":
+		// TODO: Reduce code duplication between here and packer-post-processor-caryatid
+
 		strEnsureArrayContainsAll(passedFlags, addRequiredFlags, "Missing required flag for '-action add': '-%v'")
 
 		digestType, digest, provider, err := caryatid.DeriveArtifactInfoFromBoxFile(*boxFlag)
@@ -177,14 +187,34 @@ func main() {
 			digest,
 		}
 
+		err = manager.AddBoxMetadataToCatalog(&boxArtifact)
+		if err != nil {
+			log.Printf("Error adding box metadata to catalog: %v\n", err)
+			return
+		}
+		log.Println("Catalog saved to backend")
+
+		catalog, err := manager.GetCatalog()
+		if err != nil {
+			log.Printf("Error getting catalog: %v\n", err)
+			return
+		}
+		log.Printf("New catalog is:\n%v\n", catalog)
+
 		err = backend.CopyBoxFile(&boxArtifact)
 		if err != nil {
 			return
 		}
-		log.Println("PostProcess(): Box file copied successfully to backend")
+		log.Println("Box file copied successfully to backend")
+
+	case "query":
+		strEnsureArrayContainsAll(passedFlags, queryRequiredFlags, "Missing required flag for '-action query': '-%v'")
+		panic("NOT IMPLEMENTED")
+
 	case "delete":
 		strEnsureArrayContainsAll(passedFlags, deleteRequiredFlags, "Missing required flag for '-action delete': '-%v'")
 		panic("NOT IMPLEMENTED")
+
 	default:
 		panic(fmt.Sprintf("No such action '%v'\n", *actionFlag))
 	}

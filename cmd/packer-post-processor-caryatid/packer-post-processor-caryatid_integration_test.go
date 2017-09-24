@@ -1,8 +1,6 @@
 package main
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -58,42 +56,6 @@ func TestMain(m *testing.M) {
 	os.Exit(testRv)
 }
 
-func createTestBoxFile(filePath string, providerName string, compress bool) (err error) {
-	outFile, err := os.Create(filePath)
-	if err != nil {
-		fmt.Printf("Error trying to create the test box file at '%v': %v\n", filePath, err)
-		return
-	}
-	defer outFile.Close()
-
-	var tarWriter *tar.Writer
-	if compress {
-		gzipWriter := gzip.NewWriter(outFile)
-		defer gzipWriter.Close()
-		tarWriter = tar.NewWriter(gzipWriter)
-	} else {
-		tarWriter = tar.NewWriter(outFile)
-	}
-	defer tarWriter.Close()
-
-	metaDataContents := fmt.Sprintf(`{"provider": "%v"}`, providerName)
-	header := &tar.Header{
-		Name: "metadata.json",
-		Mode: 0666,
-		Size: int64(len(metaDataContents)),
-	}
-
-	if err = tarWriter.WriteHeader(header); err != nil {
-		fmt.Printf("Error trying to write the header for the test box file: %v\n", err)
-		return
-	}
-	if _, err = tarWriter.Write([]byte(metaDataContents)); err != nil {
-		fmt.Printf("Error trying to write metadata contents for the test box file: %v\n", err)
-		return
-	}
-	return
-}
-
 func TestPostProcess(t *testing.T) {
 	var (
 		err                  error
@@ -114,7 +76,7 @@ func TestPostProcess(t *testing.T) {
 	pp.config.Version = "6.6.6"
 
 	// Set up test: write files etc
-	err = createTestBoxFile(testArtifactPath, testProviderName, true)
+	err = caryatid.CreateTestBoxFile(testArtifactPath, testProviderName, true)
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Error trying to write input artifact file: %v", err))
 	}
