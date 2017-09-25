@@ -42,8 +42,8 @@ func (bxart *BoxArtifact) Id() string {
 	return fmt.Sprintf("%s/%s/%s", bxart.Name, bxart.Provider, bxart.Version)
 }
 
-func (bxart *BoxArtifact) String() string {
-	return fmt.Sprintf("%s/%s (v. %s)", bxart.Name, bxart.Provider, bxart.Version)
+func (artifact *BoxArtifact) String() string {
+	return fmt.Sprintf("%v/%v v%v %v:%v (%v)", artifact.Name, artifact.Provider, artifact.Version, artifact.ChecksumType, artifact.Checksum, artifact.Description)
 }
 
 func (*BoxArtifact) State(name string) interface{} {

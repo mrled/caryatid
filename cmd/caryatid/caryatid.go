@@ -78,6 +78,7 @@ func main() {
 		"box", "", "Local path to a box file")
 
 	// TODO: Validate -version when adding a box
+	// (Should also be done in the packer post-processor, I guess)
 	versionFlag := flag.String(
 		"version",
 		"",
@@ -95,7 +96,7 @@ func main() {
 	nameFlag := flag.String(
 		"name",
 		"",
-		"The name of the box tracked in the Vagrant catalog. When querying boxes or deleting a box, this restricts the query to only boxes matching this name, and may include asterisks for globbing. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
+		"The name of the box tracked in the Vagrant catalog. When deleting a box, this restricts the query to only boxes matching this name, and may include asterisks for globbing. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
 	flag.Parse()
 
 	globalRequiredFlags := []string{
@@ -190,26 +191,34 @@ func main() {
 		err = manager.AddBoxMetadataToCatalog(&boxArtifact)
 		if err != nil {
 			log.Printf("Error adding box metadata to catalog: %v\n", err)
-			return
+			os.Exit(1)
 		}
 		log.Println("Catalog saved to backend")
 
 		catalog, err := manager.GetCatalog()
 		if err != nil {
 			log.Printf("Error getting catalog: %v\n", err)
-			return
+			os.Exit(1)
 		}
 		log.Printf("New catalog is:\n%v\n", catalog)
 
 		err = backend.CopyBoxFile(&boxArtifact)
 		if err != nil {
-			return
+			os.Exit(1)
 		}
 		log.Println("Box file copied successfully to backend")
 
 	case "query":
 		strEnsureArrayContainsAll(passedFlags, queryRequiredFlags, "Missing required flag for '-action query': '-%v'")
-		panic("NOT IMPLEMENTED")
+		catalog, err := manager.GetCatalog()
+		if err != nil {
+			log.Printf("Error getting catalog: %v\n", err)
+			os.Exit(1)
+		}
+		queryParams := caryatid.CatalogQueryParams{*versionFlag, *providerFlag}
+		for _, box := range catalog.QueryCatalog(queryParams) {
+			fmt.Printf("%v\n", box.String())
+		}
 
 	case "delete":
 		strEnsureArrayContainsAll(passedFlags, deleteRequiredFlags, "Missing required flag for '-action delete': '-%v'")
