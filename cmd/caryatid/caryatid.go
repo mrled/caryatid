@@ -11,6 +11,7 @@ caryatid delete --uri uri:///path/to/catalog.json --version "<1.0.0" --provider 
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -20,6 +21,11 @@ import (
 
 	"github.com/mrled/caryatid/pkg/caryatid"
 )
+
+type IoPair struct {
+	Input  string
+	Output bool
+}
 
 func strArrayContains(array []string, testItem string) bool {
 	for _, item := range array {
@@ -46,10 +52,10 @@ func strEnsureArrayContainsAll(refArray []string, mustContain []string, panicFor
 // Test whether a string is a valid URI
 func testValidUri(uri string) bool {
 	matched, err := regexp.MatchString("^[a-zA-Z0-9]+://", uri)
-	if matched && err != nil {
-		return true
+	if err != nil {
+		matched = false
 	}
-	return false
+	return matched
 }
 
 func convertLocalPathToUri(path string) (uri string, err error) {
@@ -58,7 +64,128 @@ func convertLocalPathToUri(path string) (uri string, err error) {
 	return
 }
 
-// func ensure
+func getManager(catalogRootUri string, boxName string) (manager *caryatid.BackendManager, err error) {
+	var uri string
+	if testValidUri(catalogRootUri) {
+		uri = catalogRootUri
+	} else {
+		// Handle a special case where the -catalog is a local path, rather than a file:// URI
+		uri, err = convertLocalPathToUri(catalogRootUri)
+		if err != nil {
+			log.Printf("Error converting catalog path '%v' to URI: %v", catalogRootUri, err)
+			return
+		}
+	}
+	log.Printf("Using catalog URI of '%v'", uri)
+
+	backend, err := caryatid.NewBackendFromUri(uri)
+	if err != nil {
+		log.Printf("Error retrieving backend: %v\n", err)
+		return
+	}
+
+	manager = caryatid.NewBackendManager(uri, boxName, &backend)
+	return
+}
+
+func showAction(catalogRootUri string, boxName string) (result string, err error) {
+	manager, err := getManager(catalogRootUri, boxName)
+	if err != nil {
+		return "", err
+	}
+	catalog, err := manager.GetCatalog()
+	if err != nil {
+		return "", err
+	}
+	result = fmt.Sprintf("%v\n", catalog)
+	return
+}
+
+func createTestBoxAction(boxName string, providerName string) (err error) {
+	err = caryatid.CreateTestBoxFile(boxName, providerName, true)
+	if err != nil {
+		log.Printf("Error creating a test box file: %v", err)
+		return
+	} else {
+		log.Printf("Box file created at '%v'", boxName)
+	}
+	return
+}
+
+func addAction(boxPath string, boxName string, boxDescription string, boxVersion string, catalogRootUri string) (err error) {
+	// TODO: Reduce code duplication between here and packer-post-processor-caryatid
+	digestType, digest, provider, err := caryatid.DeriveArtifactInfoFromBoxFile(boxPath)
+	if err != nil {
+		panic(fmt.Sprintf("Could not determine artifact info: %v", err))
+	}
+
+	boxArtifact := caryatid.BoxArtifact{
+		boxPath,
+		boxName,
+		boxDescription,
+		boxVersion,
+		provider,
+		catalogRootUri,
+		digestType,
+		digest,
+	}
+
+	manager, err := getManager(catalogRootUri, boxName)
+	if err != nil {
+		log.Printf("Error getting a BackendManager")
+		return
+	}
+
+	err = manager.AddBoxMetadataToCatalog(&boxArtifact)
+	if err != nil {
+		log.Printf("Error adding box metadata to catalog: %v\n", err)
+		return
+	}
+	log.Println("Catalog saved to backend")
+
+	catalog, err := manager.GetCatalog()
+	if err != nil {
+		log.Printf("Error getting catalog: %v\n", err)
+		return
+	}
+	log.Printf("New catalog is:\n%v\n", catalog)
+
+	err = manager.Backend.CopyBoxFile(&boxArtifact)
+	if err != nil {
+		return
+	}
+	log.Println("Box file copied successfully to backend")
+
+	return
+}
+
+func queryAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (result string, err error) {
+	manager, err := getManager(catalogRootUri, boxName)
+	if err != nil {
+		log.Printf("Error getting a BackendManager")
+		return
+	}
+
+	catalog, err := manager.GetCatalog()
+	if err != nil {
+		log.Printf("Error getting catalog: %v\n", err)
+		return
+	}
+
+	var resultBuffer bytes.Buffer
+	queryParams := caryatid.CatalogQueryParams{versionQuery, providerQuery}
+	for _, box := range catalog.QueryCatalog(queryParams) {
+		// result = append(result, box.String())
+		resultBuffer.WriteString(fmt.Sprintf("%v\n", box.String()))
+	}
+	result = resultBuffer.String()
+
+	return
+}
+
+func deleteAction() (err error) {
+	panic("DELETE ACTION NOT IMPLEMENTED")
+}
 
 func main() {
 
@@ -66,7 +193,7 @@ func main() {
 	actionFlag := flag.String(
 		"action",
 		"show",
-		"One of 'show', 'query', 'add', or 'delete'.")
+		"One of 'show', 'create-test-box', 'query', 'add', or 'delete'.")
 
 	// Globally required flags
 	catalogFlag := flag.String(
@@ -99,133 +226,31 @@ func main() {
 		"The name of the box tracked in the Vagrant catalog. When deleting a box, this restricts the query to only boxes matching this name, and may include asterisks for globbing. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
 	flag.Parse()
 
-	globalRequiredFlags := []string{
-		"catalog",
-	}
-	createTestBoxRequiredFlags := []string{
-		"box",
-		"provider",
-	}
-	showRequiredFlags := []string{}
-	queryRequiredFlags := []string{}
-	addRequiredFlags := []string{
-		"box",
-		"description",
-		"version",
-		"name",
-	}
-	deleteRequiredFlags := []string{
-		"box",
-		"version",
-		"provider",
-	}
-
-	var err error
-
-	// Create an array of all flags passed by the user
-	// Note that this will not include flags with default values
-	passedFlags := make([]string, 0)
-	flag.Visit(func(f *flag.Flag) { passedFlags = append(passedFlags, f.Name) })
-	// fmt.Printf("Passed flags: %v\n", passedFlags)
-
-	strEnsureArrayContainsAll(passedFlags, globalRequiredFlags, "Missing required flag: '-%v'")
-
-	// Handle a special case where the -catalog is a local path, rather than a file:// URI
-	var catalogUri string
-	if testValidUri(*catalogFlag) {
-		catalogUri = *catalogFlag
-	} else {
-		catalogUri, err = convertLocalPathToUri(*catalogFlag)
-		if err != nil {
-			log.Printf("Error converting catalog path '%v' to URI: %v", *catalogFlag, err)
-			os.Exit(1)
-		}
-	}
-	log.Printf("Using catalog URI of '%v'", catalogUri)
-
-	backend, err := caryatid.NewBackendFromUri(catalogUri)
-	if err != nil {
-		log.Printf("Error retrieving backend: %v\n", err)
-		os.Exit(1)
-	}
-
-	manager := caryatid.NewBackendManager(catalogUri, *nameFlag, &backend)
-	cata, err := manager.GetCatalog()
-	if err != nil {
-		log.Printf("Error getting catalog: %v\n", err)
-		os.Exit(1)
-	}
-
+	var (
+		err    error
+		result string
+	)
 	switch *actionFlag {
-
 	case "show":
-		strEnsureArrayContainsAll(passedFlags, showRequiredFlags, "Missing required flag for '-action show': '-%v'")
-		fmt.Printf("%v\n", cata)
-
+		result, err = showAction(*catalogFlag, *boxFlag)
 	case "create-test-box":
-		strEnsureArrayContainsAll(passedFlags, createTestBoxRequiredFlags, "Missing required flag for '-action create-test-box': '-%v'")
-		caryatid.CreateTestBoxFile(*boxFlag, *providerFlag, true)
-		log.Printf("Box file created at '%v'", *boxFlag)
-
+		err = createTestBoxAction(*boxFlag, *providerFlag)
 	case "add":
-		// TODO: Reduce code duplication between here and packer-post-processor-caryatid
-
-		strEnsureArrayContainsAll(passedFlags, addRequiredFlags, "Missing required flag for '-action add': '-%v'")
-
-		digestType, digest, provider, err := caryatid.DeriveArtifactInfoFromBoxFile(*boxFlag)
-		if err != nil {
-			panic(fmt.Sprintf("Could not determine artifact info: %v", err))
-		}
-
-		boxArtifact := caryatid.BoxArtifact{
-			*boxFlag,
-			*nameFlag,
-			*descriptionFlag,
-			*versionFlag,
-			provider,
-			catalogUri,
-			digestType,
-			digest,
-		}
-
-		err = manager.AddBoxMetadataToCatalog(&boxArtifact)
-		if err != nil {
-			log.Printf("Error adding box metadata to catalog: %v\n", err)
-			os.Exit(1)
-		}
-		log.Println("Catalog saved to backend")
-
-		catalog, err := manager.GetCatalog()
-		if err != nil {
-			log.Printf("Error getting catalog: %v\n", err)
-			os.Exit(1)
-		}
-		log.Printf("New catalog is:\n%v\n", catalog)
-
-		err = backend.CopyBoxFile(&boxArtifact)
-		if err != nil {
-			os.Exit(1)
-		}
-		log.Println("Box file copied successfully to backend")
-
+		err = addAction(*boxFlag, *nameFlag, *descriptionFlag, *versionFlag, *catalogFlag)
 	case "query":
-		strEnsureArrayContainsAll(passedFlags, queryRequiredFlags, "Missing required flag for '-action query': '-%v'")
-		catalog, err := manager.GetCatalog()
-		if err != nil {
-			log.Printf("Error getting catalog: %v\n", err)
-			os.Exit(1)
-		}
-		queryParams := caryatid.CatalogQueryParams{*versionFlag, *providerFlag}
-		for _, box := range catalog.QueryCatalog(queryParams) {
-			fmt.Printf("%v\n", box.String())
-		}
-
+		result, err = queryAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
 	case "delete":
-		strEnsureArrayContainsAll(passedFlags, deleteRequiredFlags, "Missing required flag for '-action delete': '-%v'")
-		panic("NOT IMPLEMENTED")
-
+		err = deleteAction()
 	default:
-		panic(fmt.Sprintf("No such action '%v'\n", *actionFlag))
+		err = fmt.Errorf("No such action '%v'\n", *actionFlag)
+	}
+
+	if result != "" {
+		fmt.Printf("Result from '%v' action: %v\n", *actionFlag, result)
+	}
+	if err != nil {
+		fmt.Printf("Error running '%v' action: %v\n", *actionFlag, err)
+		os.Exit(1)
 	}
 
 	os.Exit(0)
