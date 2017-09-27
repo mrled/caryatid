@@ -29,7 +29,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -57,46 +56,6 @@ type Version struct {
 	Providers []Provider `json:"providers"`
 }
 
-// ComparableVersion represents a semantic version
-// It holds an array of intes representing the version, and a string representing the prerelease tag
-// Example semantic version 1.5.3-BETA: ComparableVersion{[]int{1, 5, 3} "BETA"}
-type ComparableVersion struct {
-	Version    []int
-	Prerelease string
-}
-
-// ComparableVersion returns a ComparableVersion struct for a semver string
-// func (v *Version) ComparableVersion() (cvers ComparableVersion, err error) {
-func NewComparableVersion(semver string) (cvers ComparableVersion, err error) {
-	splitVers := strings.Split(semver, ".")
-	lastIdx := len(splitVers) - 1
-	for idx, strComponent := range splitVers {
-		component, parseIntErr := strconv.ParseInt(strComponent, 10, 0)
-		if parseIntErr == nil {
-			cvers.Version = append(cvers.Version, int(component))
-		} else {
-			if idx != lastIdx {
-				err = fmt.Errorf("Could not decode component %v from version string %v", idx, semver)
-				return
-			} else {
-				dashIdx := strings.Index(strComponent, "-")
-				if dashIdx == -1 {
-					err = fmt.Errorf("Could not decode final version component '%v' for input '%v'", strComponent, semver)
-					return
-				}
-				versionPart, parseIntErr2 := strconv.ParseInt(strComponent[0:dashIdx], 10, 0)
-				if parseIntErr2 != nil {
-					err = fmt.Errorf("Could not parse version number from final version component '%v'", strComponent)
-					return
-				}
-				cvers.Version = append(cvers.Version, int(versionPart))
-				cvers.Prerelease = strComponent[dashIdx+1:]
-			}
-		}
-	}
-	return
-}
-
 // Equals compares two Version structs - including each of their Providers - and returns true if they are equal
 func (v1 *Version) Equals(v2 *Version) bool {
 	if v1 == nil || v2 == nil {
@@ -114,41 +73,6 @@ func (v1 *Version) Equals(v2 *Version) bool {
 		}
 	}
 	return true
-}
-
-/*
-VersionComparator represents the numerical relationship between to Version structs
-VersionEquals indicates that the two structs are equal
-VersionEqualsPrereleaseMismatch indicates that the two structs have equal numerical versions, but mismatched Prerelease tags
-VersionLessThan indicates that the Version in question has a lower numerical version than the one its compared to
-VersionGreaterThan indicates that the Version in question has a higher numerical version than the one its compared to
-*/
-
-type VersionComparator int
-
-const (
-	VersionEquals                   VersionComparator = iota
-	VersionEqualsPrereleaseMismatch VersionComparator = iota
-	VersionLessThan                 VersionComparator = iota
-	VersionGreaterThan              VersionComparator = iota
-)
-
-// Compare compares just the Version properties of two Version structs
-func (cv1 *ComparableVersion) Compare(cv2 *ComparableVersion) (comparator VersionComparator) {
-	for idx, _ := range cv1.Version {
-		if len(cv2.Version) < idx {
-			if cv1.Version[idx] < cv2.Version[idx] {
-				return VersionLessThan
-			} else if cv1.Version[idx] > cv2.Version[idx] {
-				return VersionGreaterThan
-			}
-		}
-	}
-
-	if cv1.Prerelease != cv2.Prerelease {
-		return VersionEqualsPrereleaseMismatch
-	}
-	return VersionEquals
 }
 
 // Catalog represents a Vagrant Catalog
@@ -269,7 +193,7 @@ func (catalog *Catalog) QueryCatalogVersions(versionquery string) (versions []Ve
 		if err != nil {
 			return nil, err
 		}
-		comparator := pVers.Compare(&cVers)
+		comparator := cVers.Compare(&pVers)
 
 		if pVersQual == "<" && comparator == VersionLessThan {
 			versions = append(versions, version)
@@ -279,7 +203,7 @@ func (catalog *Catalog) QueryCatalogVersions(versionquery string) (versions []Ve
 			versions = append(versions, version)
 		} else if pVersQual == ">=" && (comparator == VersionGreaterThan || comparator == VersionEquals) {
 			versions = append(versions, version)
-		} else if pVersQual == "=" && comparator == VersionEquals {
+		} else if (pVersQual == "=" || pVersQual == "") && comparator == VersionEquals {
 			versions = append(versions, version)
 		}
 	}
@@ -302,10 +226,10 @@ func (catalog *Catalog) QueryCatalog(params CatalogQueryParams) (boxes []BoxArti
 		}
 	}
 
-	providerRegex := regexp.MustCompile(params.Provider)
 	if params.Provider == "" {
 		params.Provider = ".*"
 	}
+	providerRegex := regexp.MustCompile(params.Provider)
 	for _, version := range matchingVersions {
 		for _, provider := range version.Providers {
 

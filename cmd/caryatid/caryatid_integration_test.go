@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/mrled/caryatid/pkg/caryatid"
@@ -235,16 +236,7 @@ func TestQueryAction(t *testing.T) {
 	// Now copy those boxes multiple times to the Catalog,
 	// as if they were different versions each time
 	for _, version := range boxVersions1 {
-		boxArtifact = caryatid.BoxArtifact{
-			boxPath1,
-			boxName,
-			boxDesc,
-			version,
-			boxProvider1,
-			catalogRootUri,
-			digestType,
-			digest,
-		}
+		boxArtifact = caryatid.BoxArtifact{boxPath1, boxName, boxDesc, version, boxProvider1, catalogRootUri, digestType, digest}
 		if err = manager.AddBoxMetadataToCatalog(&boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
@@ -254,16 +246,7 @@ func TestQueryAction(t *testing.T) {
 		}
 	}
 	for _, version := range boxVersions2 {
-		boxArtifact = caryatid.BoxArtifact{
-			boxPath2,
-			boxName,
-			boxDesc,
-			version,
-			boxProvider2,
-			catalogRootUri,
-			digestType,
-			digest,
-		}
+		boxArtifact = caryatid.BoxArtifact{boxPath2, boxName, boxDesc, version, boxProvider2, catalogRootUri, digestType, digest}
 		if err = manager.AddBoxMetadataToCatalog(&boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
@@ -273,9 +256,67 @@ func TestQueryAction(t *testing.T) {
 		}
 	}
 
-	result, err = queryAction(catalogRootUri, boxName, "1.2.3", "")
-	if err != nil || result == "" {
-		t.Fatalf("queryAction() returned (result, err) of '%v' and '%v'\n", result, err)
+	type TestCase struct {
+		VersionQuery   string
+		ProviderQuery  string
+		ExpectedResult []string
+	}
+
+	testCases := []TestCase{
+		TestCase{ // Expect all items in catalog
+			"", "", []string{
+				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.0.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.0.0-PRE TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.4.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.2.3 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v1.2.3 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.2.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v0.3.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v1.0.1 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v2.0.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v2.10.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v2.11.1 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			},
+		},
+		TestCase{
+			"", "rongSap", []string{
+				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.0.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.0.0-PRE TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.4.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.2.3 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v1.2.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			},
+		},
+		TestCase{
+			"<1", "", []string{
+				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/FeebleFungus v0.3.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			},
+		},
+		TestCase{
+			"<1", ".*rongSap.*", []string{
+				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		// Join the array into a multi-line string, and add a trailing newline
+		expectedResult := strings.Join(append(tc.ExpectedResult, ""), "\n")
+		result, err = queryAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery)
+		if err != nil {
+			t.Fatalf("queryAction(*, *, %v, %v) returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
+		} else if result != expectedResult {
+			t.Fatalf("queryAction(*, *, %v, %v) returned result:\n%v\nBut we expected:\n%v\n", tc.VersionQuery, tc.ProviderQuery, result, expectedResult)
+		}
 	}
 }
 

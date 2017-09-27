@@ -175,11 +175,9 @@ func queryAction(catalogRootUri string, boxName string, versionQuery string, pro
 	var resultBuffer bytes.Buffer
 	queryParams := caryatid.CatalogQueryParams{versionQuery, providerQuery}
 	for _, box := range catalog.QueryCatalog(queryParams) {
-		// result = append(result, box.String())
 		resultBuffer.WriteString(fmt.Sprintf("%v\n", box.String()))
 	}
 	result = resultBuffer.String()
-
 	return
 }
 
@@ -246,10 +244,10 @@ func main() {
 	}
 
 	if result != "" {
-		fmt.Printf("Result from '%v' action: %v\n", *actionFlag, result)
+		fmt.Printf("Result from '%v' action:\n%v\n", *actionFlag, result)
 	}
 	if err != nil {
-		fmt.Printf("Error running '%v' action: %v\n", *actionFlag, err)
+		fmt.Printf("Error running '%v' action:\n%v\n", *actionFlag, err)
 		os.Exit(1)
 	}
 

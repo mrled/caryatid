@@ -44,7 +44,7 @@ func (cb *CaryatidTestBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 	return nil
 }
 
-func (backend *CaryatidTestBackend) String() string {
+func (backend *CaryatidTestBackend) Scheme() string {
 	return "Test"
 }
 

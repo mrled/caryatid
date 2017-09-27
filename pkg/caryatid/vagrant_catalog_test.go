@@ -226,3 +226,73 @@ func TestCatalogAddBox(t *testing.T) {
 		&bxArt,
 	)
 }
+
+func TestQueryCatalogVersions(t *testing.T) {
+	var (
+		err            error
+		result         []Version
+		expectedResult []Version
+
+		boxProvider1  = "StrongSapling"
+		boxProvider2  = "FeebleFungus"
+		boxExampleUri = "http://example.com/this/is/my/box"
+		boxName       = "TestQueryActionBox"
+		boxDesc       = "TestQueryActionBox is a test box"
+		digestType    = "TestQueryActionDigestType"
+		digest        = "0xB00B1E5"
+	)
+
+	catalog := &Catalog{boxName, boxDesc, []Version{
+		Version{"0.3.5", []Provider{
+			Provider{boxProvider1, boxExampleUri, digestType, digest},
+		}},
+		Version{"0.3.4", []Provider{
+			Provider{boxProvider2, boxExampleUri, digestType, digest},
+		}},
+		Version{"0.3.5-BETA", []Provider{
+			Provider{boxProvider1, boxExampleUri, digestType, digest},
+			Provider{boxProvider2, boxExampleUri, digestType, digest},
+		}},
+		Version{"1.0.0", []Provider{
+			Provider{boxProvider1, boxExampleUri, digestType, digest},
+		}},
+		Version{"1.0.1", []Provider{
+			Provider{boxProvider2, boxExampleUri, digestType, digest},
+		}},
+		Version{"1.4.5", []Provider{
+			Provider{boxProvider1, boxExampleUri, digestType, digest},
+		}},
+		Version{"1.2.3", []Provider{
+			Provider{boxProvider1, boxExampleUri, digestType, digest},
+			Provider{boxProvider2, boxExampleUri, digestType, digest},
+		}},
+		Version{"1.2.4", []Provider{
+			Provider{boxProvider1, boxExampleUri, digestType, digest},
+		}},
+		Version{"2.11.1", []Provider{
+			Provider{boxProvider2, boxExampleUri, digestType, digest},
+		}},
+	}}
+
+	versionArraysAreEqual := func(v1 []Version, v2 []Version) bool {
+		if len(v1) != len(v2) {
+			return false
+		}
+		for idx, _ := range v1 {
+			if !v1[idx].Equals(&v2[idx]) {
+				return false
+			}
+		}
+		return true
+	}
+
+	expectedResult = []Version{
+		Version{"2.11.1", []Provider{
+			Provider{boxProvider2, boxExampleUri, digestType, digest},
+		}},
+	}
+	result, err = catalog.QueryCatalogVersions(">2")
+	if err != nil || !versionArraysAreEqual(result, expectedResult) {
+		t.Fatalf("QueryCatalogVersions() returned unexpected value(s). Err:\n%v\nActual return value:\n%v\nExpected return value:\n%v\n", err, result, expectedResult)
+	}
+}

@@ -2,3 +2,4 @@
 ._*
 integration_tests/
 release/
+*_string.go
