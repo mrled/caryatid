@@ -1,3 +1,14 @@
+/*
+Caryatid build script
+
+Goals:
+- Build single-platform binaries
+- Build separate binaries for each supported architecture
+- Assemble zipfiles for each supported architecture for release
+
+Run with "go run scripts/buildrelease.go"
+*/
+
 package main
 
 import (
@@ -10,29 +21,16 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
 
-// Build a release for all supported architectures
-// Run with "go run buildrelease.go"
-
-func updateEnv(inEnv []string, name string, value string) (outEnv []string, err error) {
-	if name == "" || value == "" {
-		err = fmt.Errorf("Input name (%v) or value (%v) was empty", name, value)
-	}
-	for _, variable := range inEnv {
-		var (
-			split     = strings.Split(variable, "=")
-			thisName  = split[0]
-			thisValue = split[1]
-		)
-		if thisName == "" || thisValue == "" {
-			err = fmt.Errorf("Couldn't find name (%v) or value (%v)", thisName, thisValue)
-			return
-		}
-		if name != thisName {
-			outEnv = append(outEnv, variable)
+func updateEnv(inEnv []string, name string, value string) (outEnv []string) {
+	for _, entry := range inEnv {
+		eqIdx := strings.Index(entry, "=")
+		if eqIdx != -1 && entry[0:eqIdx] != name {
+			outEnv = append(outEnv, entry)
 		}
 	}
 	outEnv = append(outEnv, fmt.Sprintf("%v=%v", name, value))
@@ -50,6 +48,9 @@ func getTempFilePath(directory string) (tempFilePath string, err error) {
 	return
 }
 
+// assembleZip creates a separate zipfile for each supported platform for packer-post-processor-caryatid
+// DEPRECATED: This was written back when I just had one command in the root of my repo, and no longer works
+// TODO: rework this into something that can build the entire source tree
 func assembleZip(goos string, goarch string, thisDir string, zipOutDir string, zipBaseName string) (err error) {
 	zipOutPath := path.Join(zipOutDir, fmt.Sprintf("%v.zip", zipBaseName))
 	srcDir := path.Join(thisDir, "packer-post-processor-caryatid")
@@ -69,14 +70,8 @@ func assembleZip(goos string, goarch string, thisDir string, zipOutDir string, z
 	cmd.Dir = srcDir
 
 	environment := os.Environ()
-	environment, err = updateEnv(environment, "GOARCH", goarch)
-	if err != nil {
-		return
-	}
-	environment, err = updateEnv(environment, "GOOS", goos)
-	if err != nil {
-		return
-	}
+	environment = updateEnv(environment, "GOARCH", goarch)
+	environment = updateEnv(environment, "GOOS", goos)
 	cmd.Env = environment
 
 	var stdout bytes.Buffer
@@ -135,46 +130,144 @@ func assembleZip(goos string, goarch string, thisDir string, zipOutDir string, z
 	return
 }
 
+// goBuildCmd builds a single "cmd" project
+func goBuildCmd(projectRoot string, cmdName string, outDir string, plat platform) (err error) {
+	var (
+		stdout bytes.Buffer
+		stderr bytes.Buffer
+	)
+	if projectRoot == "" {
+		return fmt.Errorf("Missing required parameter projectRoot")
+	}
+	if cmdName == "" {
+		return fmt.Errorf("Missing required parameter cmdName")
+	}
+	projectDir := path.Join(projectRoot, "cmd", cmdName)
+	if outDir == "" {
+		outDir = projectDir
+	}
+
+	cmdFilename := cmdName
+	if plat.Os == "windows" {
+		cmdFilename = fmt.Sprintf("%v.exe", cmdName)
+	}
+	cmdOutPath := path.Join(outDir, cmdFilename)
+
+	environment := os.Environ()
+	environment = updateEnv(environment, "GOARCH", plat.Arch)
+	environment = updateEnv(environment, "GOOS", plat.Os)
+
+	cmd := exec.Command("go", "build", "-o", cmdOutPath)
+	cmd.Dir = projectDir
+	cmd.Env = environment
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		errmsg := strings.Join(
+			[]string{
+				fmt.Sprintf("Error running 'go build' for %v/%v platform:", plat.Os, plat.Arch),
+				"STDOUT:", stdout.String(),
+				"STDERR:", stderr.String(),
+				"Go error:", fmt.Sprintf("%v", err),
+			}, "\n",
+		)
+		return fmt.Errorf("%v\n", errmsg)
+	}
+	return
+}
+
+type platform struct {
+	Os   string
+	Arch string
+}
+
+func (plat *platform) String() string {
+	return fmt.Sprintf("%v/%v", plat.Os, plat.Arch)
+}
+
+func myPlatform() platform {
+	return platform{runtime.GOOS, runtime.GOARCH}
+}
+
+var allPlatforms = []platform{
+	platform{"darwin", "amd64"},
+	platform{"freebsd", "amd64"},
+	platform{"freebsd", "386"},
+	platform{"freebsd", "arm"},
+	platform{"linux", "amd64"},
+	platform{"linux", "386"},
+	platform{"linux", "arm"},
+	platform{"windows", "amd64"},
+	platform{"windows", "386"},
+}
+
+// readDirFullPath takes in path components and returns the absolute path of the input path's children
+func readDirFullPath(pathComponents ...string) (fullPaths []string, err error) {
+	basePath := path.Join(pathComponents...)
+	pathSubItems, err := ioutil.ReadDir(basePath)
+	if err != nil {
+		return
+	}
+	for _, subItem := range pathSubItems {
+		fullPaths = append(fullPaths, path.Join(basePath, subItem.Name()))
+	}
+	return
+}
+
 func main() {
 	var (
-		err                  error
+		err    error
+		outDir string
+
 		_, thisFile, _, rcOk = runtime.Caller(0)
-		thisDir, _           = path.Split(thisFile)
-		releaseDir           = path.Join(thisDir, "release")
+		thisDir              = filepath.Dir(thisFile)
+		projectRootDir       = filepath.Dir(thisDir)
+		releaseDir           = path.Join(projectRootDir, "release")
+
+		// cmdProjs, _      = ioutil.ReadDir(path.Join(projectRootDir, "cmd"))
+		// internalProjs, _ = ioutil.ReadDir(path.Join(projectRootDir, "internal"))
+		// pkgProjs, _      = ioutil.ReadDir(path.Join(projectRootDir, "pkg"))
 	)
 
 	if !rcOk {
 		panic("Could not determine build script file path")
 	}
 
+	actionFlag := flag.String("action", "build", "The action to perform. One of build, test, release")
+	outDirFlag := flag.String("outDir", "", "The output directory. If empty, binaries will be built in their project directories.")
 	versionFlag := flag.String("version", "devel", "A version number")
 	flag.Parse()
 
-	platforms := [][]string{
-		[]string{"darwin", "amd64"},
-		[]string{"freebsd", "amd64"},
-		[]string{"freebsd", "386"},
-		[]string{"freebsd", "arm"},
-		[]string{"linux", "amd64"},
-		[]string{"linux", "386"},
-		[]string{"linux", "arm"},
-		[]string{"windows", "amd64"},
-		[]string{"windows", "386"},
-	}
-
-	err = os.MkdirAll(releaseDir, 0777)
-	if err != nil {
-		panic(err)
-	}
-
-	for _, plat := range platforms {
-		goos := plat[0]
-		goarch := plat[1]
-		zipBaseName := fmt.Sprintf("caryatid_%v_%v_%v", goos, goarch, *versionFlag)
-
-		err = assembleZip(goos, goarch, thisDir, releaseDir, zipBaseName)
-		if err != nil {
-			fmt.Printf("Error assembling zip file for %v/%v: %v", goos, goarch, err)
+	outDir = *outDirFlag
+	if outDir != "" {
+		if outDir, err = filepath.Abs(outDir); err != nil {
+			fmt.Printf("Tried to set the outDir to '%v', but could not determine its absolute path. Building all binaries in their respective project directories instead.\n", outDirFlag)
+			outDir = ""
 		}
+	}
+
+	fmt.Printf("thisDir: %v\nprojectRootDir: %v\n", thisDir, projectRootDir)
+	fmt.Printf("Performing action: %v\n", *actionFlag)
+	switch *actionFlag {
+	case "build":
+		err = goBuildCmd(projectRootDir, "caryatid", outDir, myPlatform())
+		if err != nil {
+			panic(err)
+		}
+		err = goBuildCmd(projectRootDir, "packer-post-processor-caryatid", outDir, myPlatform())
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Successfully built all projects under cmd/\n")
+		if outDir == "" {
+			fmt.Printf("All files output to their respective project directories\n")
+		} else {
+			fmt.Printf("All files output to '%v'\n", outDir)
+		}
+	case "test":
+		panic("-action test NOT IMPLEMENTED")
+	case "release":
+		panic("-action release NOT IMPLEMENTED")
 	}
 }
