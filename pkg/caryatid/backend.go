@@ -75,19 +75,22 @@ func (bm *BackendManager) SaveCatalog(catalog Catalog) (err error) {
 	return
 }
 
-// TODO: Should Backend.CopyBoxFile in this too, and probably rename this function to just AddBox()
-func (bm *BackendManager) AddBoxMetadataToCatalog(box *BoxArtifact) (err error) {
+func (bm *BackendManager) AddBox(box *BoxArtifact) (err error) {
 	catalog, err := bm.GetCatalog()
 	if err != nil {
-		log.Printf("AddBoxMetadataToCatalog(): Error retrieving catalog from backend: %v", err)
+		log.Printf("AddBox(): Error retrieving catalog from backend: %v\n", err)
 		return
 	}
 	if err = catalog.AddBox(box); err != nil {
-		log.Printf("AddBoxMetadataToCatalog(): Error adding box to catalog metadata object: %v", err)
+		log.Printf("AddBox(): Error adding box to catalog metadata object: %v\n", err)
 		return
 	}
 	if err = bm.SaveCatalog(catalog); err != nil {
-		log.Printf("AddBoxMetadataToCatalog(): Error saving catalog: %v", err)
+		log.Printf("AddBox(): Error saving catalog: %v\n", err)
+		return
+	}
+	if err = bm.Backend.CopyBoxFile(box); err != nil {
+		log.Printf("AddBox(): Error copying box file: %v\n", err)
 		return
 	}
 	return

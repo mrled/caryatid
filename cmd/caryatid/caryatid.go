@@ -135,12 +135,12 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 		return
 	}
 
-	err = manager.AddBoxMetadataToCatalog(&boxArtifact)
+	err = manager.AddBox(&boxArtifact)
 	if err != nil {
 		log.Printf("Error adding box metadata to catalog: %v\n", err)
 		return
 	}
-	log.Println("Catalog saved to backend")
+	log.Println("Box successfully added to backend")
 
 	catalog, err := manager.GetCatalog()
 	if err != nil {
@@ -148,12 +148,6 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 		return
 	}
 	log.Printf("New catalog is:\n%v\n", catalog)
-
-	err = manager.Backend.CopyBoxFile(&boxArtifact)
-	if err != nil {
-		return
-	}
-	log.Println("Box file copied successfully to backend")
 
 	return
 }

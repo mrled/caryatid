@@ -100,12 +100,12 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	}
 	manager := caryatid.NewBackendManager(pp.config.CatalogRootUri, pp.config.Name, &backend)
 
-	err = manager.AddBoxMetadataToCatalog(&boxArtifact)
+	err = manager.AddBox(&boxArtifact)
 	if err != nil {
 		log.Printf("PostProcess(): Error adding box metadata to catalog: %v\n", err)
 		return
 	}
-	log.Println("PostProcess(): Catalog saved to backend")
+	log.Println("PostProcess(): New box added to backend")
 
 	catalog, err := manager.GetCatalog()
 	if err != nil {
@@ -113,12 +113,6 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		return
 	}
 	log.Printf("PostProcess(): New catalog is:\n%v\n", catalog)
-
-	err = backend.CopyBoxFile(&boxArtifact)
-	if err != nil {
-		return
-	}
-	log.Println("PostProcess(): Box file copied successfully to backend")
 
 	return
 }

@@ -237,22 +237,16 @@ func TestQueryAction(t *testing.T) {
 	// as if they were different versions each time
 	for _, version := range boxVersions1 {
 		boxArtifact = caryatid.BoxArtifact{Path: boxPath1, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider1, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
-		if err = manager.AddBoxMetadataToCatalog(&boxArtifact); err != nil {
+		if err = manager.AddBox(&boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
-		}
-		if err = manager.Backend.CopyBoxFile(&boxArtifact); err != nil {
-			t.Fatalf("Error copying box file: %v\n", err)
 		}
 	}
 	for _, version := range boxVersions2 {
 		boxArtifact = caryatid.BoxArtifact{Path: boxPath2, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider2, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
-		if err = manager.AddBoxMetadataToCatalog(&boxArtifact); err != nil {
+		if err = manager.AddBox(&boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
-		}
-		if err = manager.Backend.CopyBoxFile(&boxArtifact); err != nil {
-			t.Fatalf("Error copying box file: %v\n", err)
 		}
 	}
 
