@@ -75,6 +75,7 @@ func (bm *BackendManager) SaveCatalog(catalog Catalog) (err error) {
 	return
 }
 
+// TODO: Should Backend.CopyBoxFile in this too, and probably rename this function to just AddBox()
 func (bm *BackendManager) AddBoxMetadataToCatalog(box *BoxArtifact) (err error) {
 	catalog, err := bm.GetCatalog()
 	if err != nil {
@@ -90,6 +91,11 @@ func (bm *BackendManager) AddBoxMetadataToCatalog(box *BoxArtifact) (err error) 
 		return
 	}
 	return
+}
+
+// TODO: Want this to call Backend.DeleteBoxFile also
+func (bm *BackendManager) DeleteBox(params CatalogQueryParams) (err error) {
+	panic("TODO: DeleteBox() NOT IMPLEMENTED")
 }
 
 /*

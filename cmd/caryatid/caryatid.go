@@ -177,7 +177,18 @@ func queryAction(catalogRootUri string, boxName string, versionQuery string, pro
 }
 
 func deleteAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (err error) {
-	panic("DELETE ACTION NOT IMPLEMENTED")
+	manager, err := getManager(catalogRootUri, boxName)
+	if err != nil {
+		log.Printf("Error getting a BackendManager")
+		return
+	}
+
+	queryParams := caryatid.CatalogQueryParams{Version: versionQuery, Provider: providerQuery}
+	if err = manager.DeleteBox(queryParams); err != nil {
+		return
+	}
+
+	return
 }
 
 func main() {

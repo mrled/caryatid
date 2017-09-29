@@ -370,5 +370,5 @@ func TestQueryAction(t *testing.T) {
 }
 
 func TestDeleteAction(t *testing.T) {
-	t.Logf("TestDeleteAction() NOT IMPLEMENTED\n")
+	t.Logf("TODO: TestDeleteAction() HAS NO TESTS DEFINED\n")
 }
