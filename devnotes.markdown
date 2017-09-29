@@ -15,7 +15,6 @@ In designing this plugin, it was helpful for me to outline how artifacts go from
     - This will take an artifact potentially consisting of several files, do some Vagrant-related processing, and output an artifact consisting of just one file with a filename ending in `.box`.
     - Note that each post-processor gets run once per artifact, so if you have defined multiple builders (say, a Virtualbox builder and a VMware builder), you'll end up with two artifacts, and the Vagrant provisioner will run once per artifact.
     - Note that since Vagrant boxes are provider-specific, the Vagrant post-processor is hard-coded to understand various providers and those providers only. The supported providers are listed in the documentation: https://www.packer.io/docs/post-processors/vagrant.html
-    - The output filename is by default `packer_{{.BuildName}}_{{.Provider}}.box`, where the `BuildName` and `Provider` variables are filled in automatically. The Caryatid post-processor relies on this being the default, so make sure not to override it
 - Run the Caryatid post-processor
     - Just like Vagrant, if you have defined multiple builders, this post-processor will see one artifact per builder (and modified by the Vagrant post-processor)
     - Note that we used to rely on the default Vagrant output filename to determine provider information, but since 1.0 we have determined it from the box file itself, which is an archive containing a `metadata.json` file that has the provider.
