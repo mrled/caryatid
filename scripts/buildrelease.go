@@ -130,35 +130,14 @@ func assembleZip(goos string, goarch string, thisDir string, zipOutDir string, z
 	return
 }
 
-// goBuildCmd builds a single "cmd" project
-func goBuildCmd(projectRoot string, cmdName string, outDir string, plat platform) (err error) {
+// execGo executes go
+func execGo(arguments []string, environment []string, pwd string) (err error) {
 	var (
 		stdout bytes.Buffer
 		stderr bytes.Buffer
 	)
-	if projectRoot == "" {
-		return fmt.Errorf("Missing required parameter projectRoot")
-	}
-	if cmdName == "" {
-		return fmt.Errorf("Missing required parameter cmdName")
-	}
-	projectDir := path.Join(projectRoot, "cmd", cmdName)
-	if outDir == "" {
-		outDir = projectDir
-	}
-
-	cmdFilename := cmdName
-	if plat.Os == "windows" {
-		cmdFilename = fmt.Sprintf("%v.exe", cmdName)
-	}
-	cmdOutPath := path.Join(outDir, cmdFilename)
-
-	environment := os.Environ()
-	environment = updateEnv(environment, "GOARCH", plat.Arch)
-	environment = updateEnv(environment, "GOOS", plat.Os)
-
-	cmd := exec.Command("go", "build", "-o", cmdOutPath)
-	cmd.Dir = projectDir
+	cmd := exec.Command("go", arguments...)
+	cmd.Dir = pwd
 	cmd.Env = environment
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -166,13 +145,56 @@ func goBuildCmd(projectRoot string, cmdName string, outDir string, plat platform
 	if err != nil {
 		errmsg := strings.Join(
 			[]string{
-				fmt.Sprintf("Error running 'go build' for %v/%v platform:", plat.Os, plat.Arch),
+				fmt.Sprintf("Error running 'go %v'", arguments),
+				"Environment:", strings.Join(environment, "\n"),
 				"STDOUT:", stdout.String(),
 				"STDERR:", stderr.String(),
 				"Go error:", fmt.Sprintf("%v", err),
 			}, "\n",
 		)
 		return fmt.Errorf("%v\n", errmsg)
+	}
+	return
+}
+
+// goBuild executes 'go build' from a directory
+func goBuild(packageRoot string, outPath string, plat *platform) (err error) {
+	if packageRoot == "" {
+		return fmt.Errorf("Missing required parameter packageRoot")
+	}
+
+	goArgs := []string{"build"}
+	if outPath != "" {
+		goArgs = append(goArgs, "-o")
+		goArgs = append(goArgs, outPath)
+	}
+
+	environment := os.Environ()
+	if plat != nil {
+		environment = updateEnv(environment, "GOARCH", plat.Arch)
+		environment = updateEnv(environment, "GOOS", plat.Os)
+	}
+
+	err = execGo(goArgs, environment, packageRoot)
+	return
+}
+
+// goBuildAllCmds executes builds all cmd packages for the current platform
+// It finds cmd packages by convention in the cmd subdir of projectRoot
+func goBuildAllCmds(projectRoot string) (err error) {
+	if projectRoot == "" {
+		return fmt.Errorf("Missing required parameter projectRoot")
+	}
+
+	cmdDirList, err := readDirFullPath(projectRoot, "cmd")
+	if err != nil {
+		return err
+	}
+
+	for _, cmdDir := range cmdDirList {
+		if err = goBuild(cmdDir, "", myPlatform()); err != nil {
+			return
+		}
 	}
 	return
 }
@@ -186,8 +208,8 @@ func (plat *platform) String() string {
 	return fmt.Sprintf("%v/%v", plat.Os, plat.Arch)
 }
 
-func myPlatform() platform {
-	return platform{runtime.GOOS, runtime.GOARCH}
+func myPlatform() *platform {
+	return &platform{runtime.GOOS, runtime.GOARCH}
 }
 
 var allPlatforms = []platform{
@@ -210,7 +232,9 @@ func readDirFullPath(pathComponents ...string) (fullPaths []string, err error) {
 		return
 	}
 	for _, subItem := range pathSubItems {
-		fullPaths = append(fullPaths, path.Join(basePath, subItem.Name()))
+		p := path.Join(basePath, subItem.Name())
+		fmt.Printf("- %v\n", p)
+		fullPaths = append(fullPaths, p)
 	}
 	return
 }
@@ -223,7 +247,7 @@ func main() {
 		_, thisFile, _, rcOk = runtime.Caller(0)
 		thisDir              = filepath.Dir(thisFile)
 		projectRootDir       = filepath.Dir(thisDir)
-		releaseDir           = path.Join(projectRootDir, "release")
+		// releaseDir           = path.Join(projectRootDir, "release")
 
 		// cmdProjs, _      = ioutil.ReadDir(path.Join(projectRootDir, "cmd"))
 		// internalProjs, _ = ioutil.ReadDir(path.Join(projectRootDir, "internal"))
@@ -236,7 +260,7 @@ func main() {
 
 	actionFlag := flag.String("action", "build", "The action to perform. One of build, test, release")
 	outDirFlag := flag.String("outDir", "", "The output directory. If empty, binaries will be built in their project directories.")
-	versionFlag := flag.String("version", "devel", "A version number")
+	// versionFlag := flag.String("version", "devel", "A version number")
 	flag.Parse()
 
 	outDir = *outDirFlag
@@ -251,14 +275,19 @@ func main() {
 	fmt.Printf("Performing action: %v\n", *actionFlag)
 	switch *actionFlag {
 	case "build":
-		err = goBuildCmd(projectRootDir, "caryatid", outDir, myPlatform())
+		err = goBuildAllCmds(projectRootDir)
 		if err != nil {
 			panic(err)
 		}
-		err = goBuildCmd(projectRootDir, "packer-post-processor-caryatid", outDir, myPlatform())
-		if err != nil {
-			panic(err)
-		}
+
+		// err = goBuildCmd(projectRootDir, "caryatid", outDir, myPlatform())
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// err = goBuildCmd(projectRootDir, "packer-post-processor-caryatid", outDir, myPlatform())
+		// if err != nil {
+		// 	panic(err)
+		// }
 		fmt.Printf("Successfully built all projects under cmd/\n")
 		if outDir == "" {
 			fmt.Printf("All files output to their respective project directories\n")
