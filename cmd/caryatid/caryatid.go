@@ -11,7 +11,6 @@ caryatid delete --uri uri:///path/to/catalog.json --version "<1.0.0" --provider 
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -159,7 +158,7 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 	return
 }
 
-func queryAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (result string, err error) {
+func queryAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (boxes []caryatid.BoxArtifact, err error) {
 	manager, err := getManager(catalogRootUri, boxName)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
@@ -172,16 +171,12 @@ func queryAction(catalogRootUri string, boxName string, versionQuery string, pro
 		return
 	}
 
-	var resultBuffer bytes.Buffer
 	queryParams := caryatid.CatalogQueryParams{versionQuery, providerQuery}
-	for _, box := range catalog.QueryCatalog(queryParams) {
-		resultBuffer.WriteString(fmt.Sprintf("%v\n", box.String()))
-	}
-	result = resultBuffer.String()
+	boxes = catalog.QueryCatalog(queryParams)
 	return
 }
 
-func deleteAction() (err error) {
+func deleteAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (err error) {
 	panic("DELETE ACTION NOT IMPLEMENTED")
 }
 
@@ -231,21 +226,23 @@ func main() {
 	switch *actionFlag {
 	case "show":
 		result, err = showAction(*catalogFlag, *boxFlag)
+		fmt.Printf("%v\n", result)
 	case "create-test-box":
 		err = createTestBoxAction(*boxFlag, *providerFlag)
 	case "add":
 		err = addAction(*boxFlag, *nameFlag, *descriptionFlag, *versionFlag, *catalogFlag)
 	case "query":
-		result, err = queryAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
+		var boxes []caryatid.BoxArtifact
+		boxes, err = queryAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
+		for _, box := range boxes {
+			fmt.Printf("%v\n", box.String())
+		}
 	case "delete":
-		err = deleteAction()
+		err = deleteAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
 	default:
 		err = fmt.Errorf("No such action '%v'\n", *actionFlag)
 	}
 
-	if result != "" {
-		fmt.Printf("Result from '%v' action:\n%v\n", *actionFlag, result)
-	}
 	if err != nil {
 		fmt.Printf("Error running '%v' action:\n%v\n", *actionFlag, err)
 		os.Exit(1)

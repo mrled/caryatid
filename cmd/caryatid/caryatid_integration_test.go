@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"os"
 	"path"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/mrled/caryatid/pkg/caryatid"
@@ -202,7 +202,7 @@ func TestQueryAction(t *testing.T) {
 	var (
 		err         error
 		boxArtifact caryatid.BoxArtifact
-		result      string
+		boxes       []caryatid.BoxArtifact
 
 		boxProvider1 = "StrongSapling"
 		boxProvider2 = "FeebleFungus"
@@ -236,7 +236,7 @@ func TestQueryAction(t *testing.T) {
 	// Now copy those boxes multiple times to the Catalog,
 	// as if they were different versions each time
 	for _, version := range boxVersions1 {
-		boxArtifact = caryatid.BoxArtifact{boxPath1, boxName, boxDesc, version, boxProvider1, catalogRootUri, digestType, digest}
+		boxArtifact = caryatid.BoxArtifact{Path: boxPath1, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider1, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
 		if err = manager.AddBoxMetadataToCatalog(&boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
@@ -246,7 +246,7 @@ func TestQueryAction(t *testing.T) {
 		}
 	}
 	for _, version := range boxVersions2 {
-		boxArtifact = caryatid.BoxArtifact{boxPath2, boxName, boxDesc, version, boxProvider2, catalogRootUri, digestType, digest}
+		boxArtifact = caryatid.BoxArtifact{Path: boxPath2, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider2, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
 		if err = manager.AddBoxMetadataToCatalog(&boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
@@ -259,63 +259,112 @@ func TestQueryAction(t *testing.T) {
 	type TestCase struct {
 		VersionQuery   string
 		ProviderQuery  string
-		ExpectedResult []string
+		ExpectedResult []caryatid.BoxArtifact
 	}
 
 	testCases := []TestCase{
 		TestCase{ // Expect all items in catalog
-			"", "", []string{
-				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.0.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.0.0-PRE TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.4.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.2.3 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v1.2.3 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.2.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v0.3.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v1.0.1 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v2.0.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v2.10.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v2.11.1 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			"", "", []caryatid.BoxArtifact{
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider2, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0-PRE", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.4.5", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.3", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.3", boxProvider2, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.4", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.4", boxProvider2, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.1", boxProvider2, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "2.0.0", boxProvider2, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "2.10.0", boxProvider2, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "2.11.1", boxProvider2, "", digestType, digest},
 			},
 		},
 		TestCase{
-			"", "rongSap", []string{
-				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.0.0 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.0.0-PRE TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.4.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.2.3 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v1.2.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			"", "rongSap", []caryatid.BoxArtifact{
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0-PRE", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.4.5", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.3", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.4", boxProvider1, "", digestType, digest},
 			},
 		},
 		TestCase{
-			"<1", "", []string{
-				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/FeebleFungus v0.3.4 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			"<1", "", []caryatid.BoxArtifact{
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider2, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.4", boxProvider2, "", digestType, digest},
 			},
 		},
 		TestCase{
-			"<1", ".*rongSap.*", []string{
-				"TestQueryActionBox/StrongSapling v0.3.5 TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
-				"TestQueryActionBox/StrongSapling v0.3.5-BETA TestQueryActionDigestType:0xB00B1E5 (TestQueryActionBox is a test box)",
+			"<1", ".*rongSap.*", []caryatid.BoxArtifact{
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
+				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
 			},
 		},
 	}
 
+	boxArtifactArrayEqual := func(barr1 []caryatid.BoxArtifact, barr2 []caryatid.BoxArtifact) bool {
+		if len(barr1) != len(barr2) {
+			fmt.Printf("The two arrays are not of equal length: %v vs %v\n", len(barr1), len(barr2))
+			return false
+		}
+		for idx, _ := range barr1 {
+			// Note that instead of using ba1.Equals(ba2), we reimplement this
+			// in order to skip comparing certain fields that we know will be weird
+
+			ba1 := barr1[idx]
+			ba2 := barr2[idx]
+
+			strEq := func(s1 string, s2 string, propName string) bool {
+				if s1 != s2 {
+					fmt.Printf("Mismatched %v:\n  1: %v\n  2: %v\n", propName, s1, s2)
+					return false
+				}
+				return true
+			}
+
+			comparisons := (true &&
+				// Do not compare Path, because this is pathologically returned as a URI from QueryCatalog
+				// strEq(ba1.Path, ba2.Path, "Path") &&
+				strEq(ba1.Name, ba2.Name, "Name") &&
+				strEq(ba1.Description, ba2.Description, "Description") &&
+				strEq(ba1.Version, ba2.Version, "Version") &&
+				strEq(ba1.Provider, ba2.Provider, "Provider") &&
+				// Do not compare CatalogRootUri, because this is always empty when returned from QueryCatalog()
+				// strEq(ba1.CatalogRootUri, ba2.CatalogRootUri, "CatalogRootUri") &&
+				strEq(ba1.ChecksumType, ba2.ChecksumType, "ChecksumType") &&
+				strEq(ba1.Checksum, ba2.Checksum, "Checksum") &&
+				true)
+
+			if !comparisons {
+				return false
+			}
+		}
+		return true
+	}
+
+	boxArtifactArrayString := func(barr []caryatid.BoxArtifact) string {
+		var resultBuffer bytes.Buffer
+		for _, box := range barr {
+			resultBuffer.WriteString(fmt.Sprintf("%v\n", box.String()))
+		}
+		return resultBuffer.String()
+	}
+
 	for _, tc := range testCases {
 		// Join the array into a multi-line string, and add a trailing newline
-		expectedResult := strings.Join(append(tc.ExpectedResult, ""), "\n")
-		result, err = queryAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery)
+		boxes, err = queryAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery)
 		if err != nil {
-			t.Fatalf("queryAction(*, *, %v, %v) returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
-		} else if result != expectedResult {
-			t.Fatalf("queryAction(*, *, %v, %v) returned result:\n%v\nBut we expected:\n%v\n", tc.VersionQuery, tc.ProviderQuery, result, expectedResult)
+			t.Fatalf("queryAction(*, *, '%v', '%v') returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
+		} else if !boxArtifactArrayEqual(boxes, tc.ExpectedResult) {
+			t.Fatalf(
+				"queryAction(*, *, '%v', '%v') returned result:\n%v\nBut we expected:\n%v\n",
+				tc.VersionQuery, tc.ProviderQuery, boxArtifactArrayString(boxes), boxArtifactArrayString(tc.ExpectedResult))
 		}
 	}
 }
