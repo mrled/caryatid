@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -48,85 +49,38 @@ func getTempFilePath(directory string) (tempFilePath string, err error) {
 	return
 }
 
-// assembleZip creates a separate zipfile for each supported platform for packer-post-processor-caryatid
-// DEPRECATED: This was written back when I just had one command in the root of my repo, and no longer works
-// TODO: rework this into something that can build the entire source tree
-func assembleZip(goos string, goarch string, thisDir string, zipOutDir string, zipBaseName string) (err error) {
-	zipOutPath := path.Join(zipOutDir, fmt.Sprintf("%v.zip", zipBaseName))
-	srcDir := path.Join(thisDir, "packer-post-processor-caryatid")
-	readmePath := path.Join(thisDir, "readme.markdown")
-
-	exeName := "packer-post-processor-caryatid"
-	if goos == "windows" {
-		exeName = fmt.Sprintf("%v.exe", exeName)
+// copyFileToZip copies a file on the filesystem inside an archive represented by zipWriter
+func copyFileToZip(zipWriter *zip.Writer, fsPath string, zipPath string) (err error) {
+	zippedFileHandle, err := zipWriter.Create(zipPath)
+	if err != nil {
+		return err
 	}
 
-	tmpExeName, err := getTempFilePath(thisDir)
+	fsFileHandle, err := os.Open(fsPath)
+	defer fsFileHandle.Close()
 	if err != nil {
 		return
 	}
 
-	cmd := exec.Command("go", "build", "-o", tmpExeName)
-	cmd.Dir = srcDir
-
-	environment := os.Environ()
-	environment = updateEnv(environment, "GOARCH", goarch)
-	environment = updateEnv(environment, "GOOS", goos)
-	cmd.Env = environment
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	fmt.Printf("Building %v/%v binary\n", goos, goarch)
-	err = cmd.Run()
-	defer os.Remove(tmpExeName)
-	if err != nil {
-		return fmt.Errorf("Error running command '%v':\nSTDOUT: %v\nSTDERR: %v\nGo error: %v\n", cmd, stdout.String(), stderr.String(), err)
-	}
-
-	fmt.Printf("Creating zipfile for %v/%v binary at %v\n", goos, goarch, zipOutPath)
-	zipOutFile, err := os.Create(zipOutPath)
-	defer zipOutFile.Close()
-	if err != nil {
-		return
-	}
-	zipWriter := zip.NewWriter(zipOutFile)
-	defer zipWriter.Close()
-
-	zExeFile, err := zipWriter.Create(fmt.Sprintf("%v/%v", zipBaseName, exeName))
-	if err != nil {
+	if _, err = io.Copy(zippedFileHandle, fsFileHandle); err != nil {
 		return
 	}
 
-	fsExeFile, err := os.Open(tmpExeName)
-	defer fsExeFile.Close()
+	return
+}
+
+// readDirFullPath takes in path components and returns the absolute path of the input path's children
+func readDirFullPath(pathComponents ...string) (fullPaths []string, err error) {
+	basePath := path.Join(pathComponents...)
+	pathSubItems, err := ioutil.ReadDir(basePath)
 	if err != nil {
 		return
 	}
-
-	_, err = io.Copy(zExeFile, fsExeFile)
-	if err != nil {
-		return
+	for _, subItem := range pathSubItems {
+		p := path.Join(basePath, subItem.Name())
+		// fmt.Printf("- %v\n", p)
+		fullPaths = append(fullPaths, p)
 	}
-
-	zReadmeFile, err := zipWriter.Create(fmt.Sprintf("%v/readme.markdown", zipBaseName))
-	if err != nil {
-		return
-	}
-
-	fsReadmeFile, err := os.Open(readmePath)
-	defer fsReadmeFile.Close()
-	if err != nil {
-		return
-	}
-
-	_, err = io.Copy(zReadmeFile, fsReadmeFile)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
@@ -157,59 +111,70 @@ func execGo(arguments []string, environment []string, pwd string) (err error) {
 	return
 }
 
-// goBuild executes 'go build' from a directory
-func goBuild(packageRoot string, outPath string, plat *platform) (err error) {
-	if packageRoot == "" {
-		return fmt.Errorf("Missing required parameter packageRoot")
-	}
-
-	goArgs := []string{"build"}
-	if outPath != "" {
-		goArgs = append(goArgs, "-o")
-		goArgs = append(goArgs, outPath)
-	}
-
-	environment := os.Environ()
-	if plat != nil {
-		environment = updateEnv(environment, "GOARCH", plat.Arch)
-		environment = updateEnv(environment, "GOOS", plat.Os)
-	}
-
-	err = execGo(goArgs, environment, packageRoot)
-	return
-}
-
-// goBuildAllCmds executes builds all cmd packages for the current platform
-// It finds cmd packages by convention in the cmd subdir of projectRoot
-func goBuildAllCmds(projectRoot string) (err error) {
-	if projectRoot == "" {
-		return fmt.Errorf("Missing required parameter projectRoot")
-	}
+// assembleZip creates a separate zipfile for each supported platform
+func assembleZip(projectRoot string, zipOutDir string, version string) (err error) {
 
 	cmdDirList, err := readDirFullPath(projectRoot, "cmd")
 	if err != nil {
 		return err
 	}
 
-	for _, cmdDir := range cmdDirList {
-		if err = goBuild(cmdDir, "", myPlatform()); err != nil {
-			return
+	for _, plat := range allPlatforms {
+		projectName := path.Base(projectRoot)
+		zipBaseName := fmt.Sprintf("%v_%v_%v_%v", projectName, plat.Os, plat.Arch, version)
+		zipOutPath := path.Join(zipOutDir, fmt.Sprintf("%v.zip", zipBaseName))
+
+		zipOutFile, err := os.Create(zipOutPath)
+		defer zipOutFile.Close()
+		if err != nil {
+			return err
+		}
+		zipWriter := zip.NewWriter(zipOutFile)
+		defer zipWriter.Close()
+
+		copyFileToZip(zipWriter, path.Join(projectRoot, "readme.markdown"), fmt.Sprintf("%v/readme.markdown", zipBaseName))
+
+		for _, cmdDir := range cmdDirList {
+			cmdName := path.Base(cmdDir)
+			if plat.Os == "windows" {
+				cmdName = fmt.Sprintf("%v.exe", cmdName)
+			}
+			log.Printf("Building %v for %v...\n", cmdName, plat.String())
+
+			tempBuildOutputFile, err := getTempFilePath(projectRoot)
+			if err != nil {
+				return err
+			}
+
+			err = execGo([]string{"build", "-o", tempBuildOutputFile}, plat.GetEnv(), cmdDir)
+			defer os.Remove(tempBuildOutputFile)
+			if err != nil {
+				return err
+			}
+
+			if err = copyFileToZip(zipWriter, tempBuildOutputFile, fmt.Sprintf("%v/%v", zipBaseName, cmdName)); err != nil {
+				return err
+			}
 		}
 	}
+
 	return
 }
 
+// platform represents an operating system / processor architecture pair
 type platform struct {
 	Os   string
 	Arch string
 }
 
+// String() returns a human-readable string for a platform
 func (plat *platform) String() string {
 	return fmt.Sprintf("%v/%v", plat.Os, plat.Arch)
 }
 
-func myPlatform() *platform {
-	return &platform{runtime.GOOS, runtime.GOARCH}
+// GetEnv() returns os.Environ() + GOOS and GOARCH based on its Os and Arch properties
+func (plat *platform) GetEnv() (outEnv []string) {
+	return updateEnv(updateEnv(os.Environ(), "GOOS", plat.Os), "GOARCH", plat.Arch)
 }
 
 var allPlatforms = []platform{
@@ -224,21 +189,6 @@ var allPlatforms = []platform{
 	platform{"windows", "386"},
 }
 
-// readDirFullPath takes in path components and returns the absolute path of the input path's children
-func readDirFullPath(pathComponents ...string) (fullPaths []string, err error) {
-	basePath := path.Join(pathComponents...)
-	pathSubItems, err := ioutil.ReadDir(basePath)
-	if err != nil {
-		return
-	}
-	for _, subItem := range pathSubItems {
-		p := path.Join(basePath, subItem.Name())
-		fmt.Printf("- %v\n", p)
-		fullPaths = append(fullPaths, p)
-	}
-	return
-}
-
 func main() {
 	var (
 		err    error
@@ -247,56 +197,27 @@ func main() {
 		_, thisFile, _, rcOk = runtime.Caller(0)
 		thisDir              = filepath.Dir(thisFile)
 		projectRootDir       = filepath.Dir(thisDir)
-		// releaseDir           = path.Join(projectRootDir, "release")
-
-		// cmdProjs, _      = ioutil.ReadDir(path.Join(projectRootDir, "cmd"))
-		// internalProjs, _ = ioutil.ReadDir(path.Join(projectRootDir, "internal"))
-		// pkgProjs, _      = ioutil.ReadDir(path.Join(projectRootDir, "pkg"))
 	)
 
 	if !rcOk {
 		panic("Could not determine build script file path")
 	}
 
-	actionFlag := flag.String("action", "build", "The action to perform. One of build, test, release")
-	outDirFlag := flag.String("outDir", "", "The output directory. If empty, binaries will be built in their project directories.")
-	// versionFlag := flag.String("version", "devel", "A version number")
+	outDirFlag := flag.String("outDir", path.Join(projectRootDir, "release"), "The output directory.")
+	versionFlag := flag.String("version", "devel", "A version number")
 	flag.Parse()
 
-	outDir = *outDirFlag
-	if outDir != "" {
-		if outDir, err = filepath.Abs(outDir); err != nil {
-			fmt.Printf("Tried to set the outDir to '%v', but could not determine its absolute path. Building all binaries in their respective project directories instead.\n", outDirFlag)
-			outDir = ""
-		}
+	if outDir, err = filepath.Abs(*outDirFlag); err != nil {
+		panic(err)
+	}
+	if err = os.MkdirAll(outDir, 0700); err != nil {
+		panic(err)
 	}
 
-	fmt.Printf("thisDir: %v\nprojectRootDir: %v\n", thisDir, projectRootDir)
-	fmt.Printf("Performing action: %v\n", *actionFlag)
-	switch *actionFlag {
-	case "build":
-		err = goBuildAllCmds(projectRootDir)
-		if err != nil {
-			panic(err)
-		}
+	log.Printf("Project root directory: %v\n", projectRootDir)
+	log.Printf("Output directory: %v\n", outDir)
 
-		// err = goBuildCmd(projectRootDir, "caryatid", outDir, myPlatform())
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// err = goBuildCmd(projectRootDir, "packer-post-processor-caryatid", outDir, myPlatform())
-		// if err != nil {
-		// 	panic(err)
-		// }
-		fmt.Printf("Successfully built all projects under cmd/\n")
-		if outDir == "" {
-			fmt.Printf("All files output to their respective project directories\n")
-		} else {
-			fmt.Printf("All files output to '%v'\n", outDir)
-		}
-	case "test":
-		panic("-action test NOT IMPLEMENTED")
-	case "release":
-		panic("-action release NOT IMPLEMENTED")
+	if err = assembleZip(projectRootDir, outDir, *versionFlag); err != nil {
+		panic(err)
 	}
 }

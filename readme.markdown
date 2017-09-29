@@ -14,14 +14,29 @@ In the future, it will support remote catalogs, like scp, as well.
 
 Caryatid is intended to work on any platform that Packer supports, but gets somewhat less testing on Windows. If you find something that's broken, please open an issue.
 
-## Installing
+## Building and installing
 
-- Build with `go build`
-- Copy to `~/.packer.d/plugins` or `%APPDATA%\packer.d\plugins`
-- See also the [official plugins documentation](https://www.packer.io/docs/extend/plugins.html)
-- To build a release, run `go build buildrelease.go`; this will result in a `release` directory that contains executables for every supported architecture
+ -  Build the binaries by changing to `./cmd/<projectname>` and running `go build`
 
-## Using
+    Building this way will result in a binary being built in the same directory
+
+ -  Install the binaries by copying them to the right location
+
+    A command-line tool such as `cmd/caryatid` might be copied to somewhere in `$PATH`
+
+    A packer plugin such as `cmd/packer-post-processor-caryatid` must be copied to `~/.packer.d/plugins` or `%APPDATA%\packer.d\plugins`; see also the [official plugins documentation](https://www.packer.io/docs/extend/plugins.html)
+
+ -  Build all projects with `go generate ./... && go build ./...` in the root directory
+
+    Note that this immediately throws away the resulting binaries, and is intended just for testing that the build succeeds
+
+ -  Test all projects with `go generate ./... && go test ./...` in the root directory
+
+ -  Build all architectures for a release with `go run scripts/buildrelease.go`
+
+    This will result in a `release` directory that contains executables for every supported architecture
+
+## Using the Packer plugin
 
 In your packerfile, you must add it as a post-processor in a *series*, and coming after a vagrant post-processor (because caryatid requires Vagrant boxes to come in as artifacts).
 
