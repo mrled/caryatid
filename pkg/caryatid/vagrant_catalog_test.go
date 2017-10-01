@@ -227,72 +227,164 @@ func TestCatalogAddBox(t *testing.T) {
 	)
 }
 
+type TestParameters struct {
+	ProviderNames []string
+	BoxUri        string
+	BoxName       string
+	BoxDesc       string
+	DigestType    string
+	Digest        string
+}
+
+var testParameters = TestParameters{
+	[]string{"StrongSapling", "FeebleFungus"},
+	"http://example.com/this/is/my/box",
+	"vagrant_catalog_test_box",
+	"Vagrant Catalog Test Box is a test box",
+	"CRC32",
+	"0xB00B1E5",
+}
+
+var testCatalog = Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	Version{"0.3.5", []Provider{
+		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"0.3.4", []Provider{
+		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"0.3.5-BETA", []Provider{
+		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"1.0.0", []Provider{
+		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"1.0.1", []Provider{
+		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"1.4.5", []Provider{
+		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"1.2.3", []Provider{
+		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"1.2.4", []Provider{
+		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+	Version{"2.11.1", []Provider{
+		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+	}},
+}}
+
 func TestQueryCatalogVersions(t *testing.T) {
-	var (
-		err            error
-		result         []Version
-		expectedResult []Version
+	testQueryVers := func(initial *Catalog, query string, expectedResult *Catalog) {
+		result, err := initial.QueryCatalogVersions(query)
+		if err != nil {
+			t.Fatalf("QueryCatalogVersions() returned an error: %v\n", err)
+		} else if !expectedResult.Equals(&result) {
+			t.Fatalf("QueryCatalogVersions() returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", result, expectedResult)
+		}
+	}
 
-		boxProvider1  = "StrongSapling"
-		boxProvider2  = "FeebleFungus"
-		boxExampleUri = "http://example.com/this/is/my/box"
-		boxName       = "TestQueryActionBox"
-		boxDesc       = "TestQueryActionBox is a test box"
-		digestType    = "TestQueryActionDigestType"
-		digest        = "0xB00B1E5"
-	)
-
-	catalog := &Catalog{boxName, boxDesc, []Version{
+	testQueryVers(&testCatalog, ">2", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+		Version{"2.11.1", []Provider{
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+	}})
+	testQueryVers(&testCatalog, "<=0.3.5", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
 		Version{"0.3.5", []Provider{
-			Provider{boxProvider1, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
 		Version{"0.3.4", []Provider{
-			Provider{boxProvider2, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
 		Version{"0.3.5-BETA", []Provider{
-			Provider{boxProvider1, boxExampleUri, digestType, digest},
-			Provider{boxProvider2, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+	}})
+	testQueryVers(&testCatalog, "0.3.5", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+		Version{"0.3.5", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"0.3.5-BETA", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+	}})
+	testQueryVers(&testCatalog, "=0.3.5", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+		Version{"0.3.5", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+	}})
+	testQueryVers(&testCatalog, "=0.3.6", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{}})
+}
+
+func TestQueryCatalogProviders(t *testing.T) {
+	testQueryProv := func(initial Catalog, query string, expectedResult Catalog) {
+		result, err := initial.QueryCatalogProviders(query)
+		if err != nil {
+			t.Fatalf("QueryCatalogProviders() returned an error: %v\n", err)
+		} else if !expectedResult.Equals(&result) {
+			t.Fatalf("QueryCatalogProviders() returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", result, expectedResult)
+		}
+	}
+	testQueryProv(testCatalog, "^Strong", Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+		Version{"0.3.5", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"0.3.5-BETA", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
 		Version{"1.0.0", []Provider{
-			Provider{boxProvider1, boxExampleUri, digestType, digest},
-		}},
-		Version{"1.0.1", []Provider{
-			Provider{boxProvider2, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
 		Version{"1.4.5", []Provider{
-			Provider{boxProvider1, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
 		Version{"1.2.3", []Provider{
-			Provider{boxProvider1, boxExampleUri, digestType, digest},
-			Provider{boxProvider2, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
 		Version{"1.2.4", []Provider{
-			Provider{boxProvider1, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+	}})
+	testQueryProv(testCatalog, "Sapling$", Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+		Version{"0.3.5", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"0.3.5-BETA", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"1.0.0", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"1.4.5", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"1.2.3", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"1.2.4", []Provider{
+			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+	}})
+	testQueryProv(testCatalog, "F", Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+		Version{"0.3.4", []Provider{
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"0.3.5-BETA", []Provider{
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"1.0.1", []Provider{
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		}},
+		Version{"1.2.3", []Provider{
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
 		Version{"2.11.1", []Provider{
-			Provider{boxProvider2, boxExampleUri, digestType, digest},
+			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 		}},
-	}}
-
-	versionArraysAreEqual := func(v1 []Version, v2 []Version) bool {
-		if len(v1) != len(v2) {
-			return false
-		}
-		for idx, _ := range v1 {
-			if !v1[idx].Equals(&v2[idx]) {
-				return false
-			}
-		}
-		return true
-	}
-
-	expectedResult = []Version{
-		Version{"2.11.1", []Provider{
-			Provider{boxProvider2, boxExampleUri, digestType, digest},
-		}},
-	}
-	result, err = catalog.QueryCatalogVersions(">2")
-	if err != nil || !versionArraysAreEqual(result, expectedResult) {
-		t.Fatalf("QueryCatalogVersions() returned unexpected value(s). Err:\n%v\nActual return value:\n%v\nExpected return value:\n%v\n", err, result, expectedResult)
-	}
+	}})
 }

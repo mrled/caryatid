@@ -152,12 +152,13 @@ func (c *Catalog) AddBox(artifact *BoxArtifact) (err error) {
 
 // parseVersionQueryString parses a semver query string
 // The string must be a valid semantic version string, optionally preceded by one of < > <= or >=
+// TODO: Return a VersionComparator? Would have to extend VersionComparator to have GreaterThanOrEquals and LessThanOrEquals.
 func parseVersionQueryString(semver string) (version ComparableVersion, qualifier string, err error) {
 	if len(semver) == 0 {
 		return
 	}
 
-	for _, prefix := range []string{">", "<", ">=", "<="} {
+	for _, prefix := range []string{">", "<", ">=", "<=", "="} {
 		if strings.HasPrefix(semver, prefix) {
 			qualifier = prefix
 			version, err = NewComparableVersion(semver[len(prefix):])
@@ -182,29 +183,67 @@ type CatalogQueryParams struct {
 	Provider string
 }
 
-// QueryCatalogVersions returns matching Version structs from a Catalog based on a semver query string
-func (catalog *Catalog) QueryCatalogVersions(versionquery string) (versions []Version, err error) {
-	pVers, pVersQual, err := parseVersionQueryString(versionquery)
+// QueryCatalogVersions returns a new Catalog containing only Versions that have a .Version property matching the versionquery input string
+func (catalog *Catalog) QueryCatalogVersions(versionquery string) (result Catalog, err error) {
+	var (
+		comparator VersionComparator
+		cVers      ComparableVersion
+		pVers      ComparableVersion
+		pVersQual  string
+	)
+	result.Name = catalog.Name
+	result.Description = catalog.Description
+	pVers, pVersQual, err = parseVersionQueryString(versionquery)
 	if err != nil {
 		return
 	}
 	for _, version := range catalog.Versions {
-		cVers, err := NewComparableVersion(version.Version)
-		if err != nil {
-			return nil, err
+		if cVers, err = NewComparableVersion(version.Version); err != nil {
+			return
 		}
-		comparator := cVers.Compare(&pVers)
+		comparator = cVers.Compare(&pVers)
 
 		if pVersQual == "<" && comparator == VersionLessThan {
-			versions = append(versions, version)
-		} else if pVersQual == "<=" && (comparator == VersionLessThan || comparator == VersionEquals) {
-			versions = append(versions, version)
+			result.Versions = append(result.Versions, version)
+
+		} else if pVersQual == "<=" && (comparator == VersionLessThan || comparator == VersionEquals || comparator == VersionEqualsPrereleaseMismatch) {
+			// Return prerelease-mismatched versions for <=
+			result.Versions = append(result.Versions, version)
+
 		} else if pVersQual == ">" && comparator == VersionGreaterThan {
-			versions = append(versions, version)
-		} else if pVersQual == ">=" && (comparator == VersionGreaterThan || comparator == VersionEquals) {
-			versions = append(versions, version)
-		} else if (pVersQual == "=" || pVersQual == "") && comparator == VersionEquals {
-			versions = append(versions, version)
+			result.Versions = append(result.Versions, version)
+
+		} else if pVersQual == ">=" && (comparator == VersionGreaterThan || comparator == VersionEquals || comparator == VersionEqualsPrereleaseMismatch) {
+			// Return prerelease-mismatched versions for >=
+			result.Versions = append(result.Versions, version)
+
+		} else if pVersQual == "=" && comparator == VersionEquals {
+			// If the versionquery qualifier is '=', return only an *exact* match
+			result.Versions = append(result.Versions, version)
+
+		} else if pVersQual == "" && (comparator == VersionEquals || comparator == VersionEqualsPrereleaseMismatch) {
+			// If the versionquery qualifier is left off, but a version is passed,
+			// return the version if it is an exact or prerelease-mismatched match
+			result.Versions = append(result.Versions, version)
+		}
+	}
+	return
+}
+
+// QueryCatalogProviders returns a new Catalog containing only Providers that have a .Name property matching the providerquery input string
+func (catalog *Catalog) QueryCatalogProviders(providerquery string) (result Catalog, err error) {
+	result.Name = catalog.Name
+	result.Description = catalog.Description
+	providerRegex := regexp.MustCompile(providerquery)
+	for _, version := range catalog.Versions {
+		newVersion := Version{version.Version, []Provider{}}
+		for _, provider := range version.Providers {
+			if providerRegex.Match([]byte(provider.Name)) {
+				newVersion.Providers = append(newVersion.Providers, provider)
+			}
+		}
+		if len(newVersion.Providers) > 0 {
+			result.Versions = append(result.Versions, newVersion)
 		}
 	}
 	return
@@ -215,11 +254,13 @@ func (catalog *Catalog) QueryCatalog(params CatalogQueryParams) (boxes []BoxArti
 	var (
 		err              error
 		matchingVersions []Version
+		newCatalog       Catalog
 	)
 	if params.Version == "" {
 		matchingVersions = catalog.Versions
 	} else {
-		matchingVersions, err = catalog.QueryCatalogVersions(params.Version)
+		newCatalog, err = catalog.QueryCatalogVersions(params.Version)
+		matchingVersions = newCatalog.Versions
 		if err != nil {
 			fmt.Printf("Invalid version query '%v' resulted in error '%v'; will return results for *all* versions\n", params.Version, err)
 			matchingVersions = catalog.Versions
