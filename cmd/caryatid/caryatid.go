@@ -152,7 +152,7 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 	return
 }
 
-func queryAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (boxes []caryatid.BoxArtifact, err error) {
+func queryAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (result caryatid.Catalog, err error) {
 	manager, err := getManager(catalogRootUri, boxName)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
@@ -165,8 +165,13 @@ func queryAction(catalogRootUri string, boxName string, versionQuery string, pro
 		return
 	}
 
-	queryParams := caryatid.CatalogQueryParams{versionQuery, providerQuery}
-	boxes = catalog.QueryCatalog(queryParams)
+	queryParams := caryatid.CatalogQueryParams{Version: versionQuery, Provider: providerQuery}
+	result, err = catalog.QueryCatalog(queryParams)
+	if err != nil {
+		log.Printf("Error querying catalog: %v\n", err)
+		return
+	}
+
 	return
 }
 
@@ -237,11 +242,9 @@ func main() {
 	case "add":
 		err = addAction(*boxFlag, *nameFlag, *descriptionFlag, *versionFlag, *catalogFlag)
 	case "query":
-		var boxes []caryatid.BoxArtifact
-		boxes, err = queryAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
-		for _, box := range boxes {
-			fmt.Printf("%v\n", box.String())
-		}
+		var resultCata caryatid.Catalog
+		resultCata, err = queryAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
+		fmt.Printf(resultCata.DisplayString())
 	case "delete":
 		err = deleteAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
 	default:

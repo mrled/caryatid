@@ -83,7 +83,16 @@ type Catalog struct {
 	Versions    []Version `json:"versions"`
 }
 
-// TODO: Add a func (*Catalog) String() string for use in the cli caryatid tool
+func (c *Catalog) DisplayString() (s string) {
+	s = fmt.Sprintf("%v (%v)\n", c.Name, c.Description)
+	for _, v := range c.Versions {
+		s += fmt.Sprintf("  v%v\n", v.Version)
+		for _, p := range v.Providers {
+			s += fmt.Sprintf("    %v %v:%v <%v>\n", p.Name, p.ChecksumType, p.Checksum, p.Url)
+		}
+	}
+	return
+}
 
 // Equals compares two Catalog structs - including their Versions, and those Versions' Providers - and returns true if they are equal
 func (c1 *Catalog) Equals(c2 *Catalog) bool {
@@ -196,6 +205,9 @@ func (catalog *Catalog) QueryCatalogVersions(versionquery string) (result Catalo
 	pVers, pVersQual, err = parseVersionQueryString(versionquery)
 	if err != nil {
 		return
+	} else if len(pVers.Version) == 0 {
+		result = *catalog
+		return
 	}
 	for _, version := range catalog.Versions {
 		if cVers, err = NewComparableVersion(version.Version); err != nil {
@@ -249,54 +261,17 @@ func (catalog *Catalog) QueryCatalogProviders(providerquery string) (result Cata
 	return
 }
 
-// QueryCatalog returns matching BoxArtifact structs from a Catalog based on a CatalogQueryParams input query
-func (catalog *Catalog) QueryCatalog(params CatalogQueryParams) (boxes []BoxArtifact) {
-	var (
-		err              error
-		matchingVersions []Version
-		newCatalog       Catalog
-	)
-	if params.Version == "" {
-		matchingVersions = catalog.Versions
-	} else {
-		newCatalog, err = catalog.QueryCatalogVersions(params.Version)
-		matchingVersions = newCatalog.Versions
-		if err != nil {
-			fmt.Printf("Invalid version query '%v' resulted in error '%v'; will return results for *all* versions\n", params.Version, err)
-			matchingVersions = catalog.Versions
-		}
+// QueryCatalog returns a new catalog containing only matching boxes from a CatalogQueryParams input query
+func (catalog *Catalog) QueryCatalog(params CatalogQueryParams) (result Catalog, err error) {
+	var vResult, pResult Catalog
+	if vResult, err = catalog.QueryCatalogVersions(params.Version); err != nil {
+		return
 	}
-
-	if params.Provider == "" {
-		params.Provider = ".*"
+	if pResult, err = vResult.QueryCatalogProviders(params.Provider); err != nil {
+		return
 	}
-	providerRegex := regexp.MustCompile(params.Provider)
-	for _, version := range matchingVersions {
-		for _, provider := range version.Providers {
-
-			// TODO: should the regex matching be in a function like version.QueryVersionProviders instead?
-			if providerRegex.Match([]byte(provider.Name)) {
-
-				// TODO: is BoxArtifact the appropriate return type for this function?
-				// Showing information to the user was not its intended purpose
-				// Consider building up a new Catalog,
-				// then using Catalog.String() or similar to display info to the user
-				box := BoxArtifact{
-					provider.Url, // Not quite right; this is supposed to be a local path, not a URI
-					catalog.Name,
-					catalog.Description,
-					version.Version,
-					provider.Name,
-					"", // CatalogRootUri is useless and unknowable from here
-					provider.ChecksumType,
-					provider.Checksum,
-				}
-				boxes = append(boxes, box)
-
-			}
-
-		}
-	}
-
+	result = pResult
+	result.Name = catalog.Name
+	result.Description = catalog.Description
 	return
 }

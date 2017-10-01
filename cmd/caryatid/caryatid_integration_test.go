@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -202,7 +201,7 @@ func TestQueryAction(t *testing.T) {
 	var (
 		err         error
 		boxArtifact caryatid.BoxArtifact
-		boxes       []caryatid.BoxArtifact
+		result      caryatid.Catalog
 
 		boxProvider1 = "StrongSapling"
 		boxProvider2 = "FeebleFungus"
@@ -253,112 +252,118 @@ func TestQueryAction(t *testing.T) {
 	type TestCase struct {
 		VersionQuery   string
 		ProviderQuery  string
-		ExpectedResult []caryatid.BoxArtifact
+		ExpectedResult caryatid.Catalog
 	}
 
 	testCases := []TestCase{
 		TestCase{ // Expect all items in catalog
-			"", "", []caryatid.BoxArtifact{
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider2, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0-PRE", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.4.5", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.3", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.3", boxProvider2, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.4", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.4", boxProvider2, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.1", boxProvider2, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "2.0.0", boxProvider2, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "2.10.0", boxProvider2, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "2.11.1", boxProvider2, "", digestType, digest},
-			},
+			"", "",
+			caryatid.Catalog{boxName, boxDesc, []caryatid.Version{
+				caryatid.Version{"0.3.5", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"0.3.5-BETA", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.0.0", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.0.0-PRE", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.4.5", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.2.3", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.2.4", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"0.3.4", []caryatid.Provider{
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.0.1", []caryatid.Provider{
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"2.0.0", []caryatid.Provider{
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"2.10.0", []caryatid.Provider{
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"2.11.1", []caryatid.Provider{
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+			}},
 		},
 		TestCase{
-			"", "rongSap", []caryatid.BoxArtifact{
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.0.0-PRE", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.4.5", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.3", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "1.2.4", boxProvider1, "", digestType, digest},
-			},
+			"", "rongSap",
+			caryatid.Catalog{boxName, boxDesc, []caryatid.Version{
+				caryatid.Version{"0.3.5", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"0.3.5-BETA", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.0.0", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.0.0-PRE", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.4.5", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.2.3", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"1.2.4", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+			}},
 		},
 		TestCase{
-			"<1", "", []caryatid.BoxArtifact{
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider2, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.4", boxProvider2, "", digestType, digest},
-			},
+			"<1", "",
+			caryatid.Catalog{boxName, boxDesc, []caryatid.Version{
+				caryatid.Version{"0.3.5", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"0.3.5-BETA", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"0.3.4", []caryatid.Provider{
+					caryatid.Provider{boxProvider2, "FAKEURI", digestType, digest},
+				}},
+			}},
 		},
 		TestCase{
-			"<1", ".*rongSap.*", []caryatid.BoxArtifact{
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5", boxProvider1, "", digestType, digest},
-				caryatid.BoxArtifact{"", boxName, boxDesc, "0.3.5-BETA", boxProvider1, "", digestType, digest},
-			},
+			"<1", ".*rongSap.*",
+			caryatid.Catalog{boxName, boxDesc, []caryatid.Version{
+				caryatid.Version{"0.3.5", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+				caryatid.Version{"0.3.5-BETA", []caryatid.Provider{
+					caryatid.Provider{boxProvider1, "FAKEURI", digestType, digest},
+				}},
+			}},
 		},
 	}
 
-	boxArtifactArrayEqual := func(barr1 []caryatid.BoxArtifact, barr2 []caryatid.BoxArtifact) bool {
-		if len(barr1) != len(barr2) {
-			fmt.Printf("The two arrays are not of equal length: %v vs %v\n", len(barr1), len(barr2))
-			return false
-		}
-		for idx, _ := range barr1 {
-			// Note that instead of using ba1.Equals(ba2), we reimplement this
-			// in order to skip comparing certain fields that we know will be weird
-
-			ba1 := barr1[idx]
-			ba2 := barr2[idx]
-
-			strEq := func(s1 string, s2 string, propName string) bool {
-				if s1 != s2 {
-					fmt.Printf("Mismatched %v:\n  1: %v\n  2: %v\n", propName, s1, s2)
-					return false
-				}
-				return true
-			}
-
-			comparisons := (true &&
-				// Do not compare Path, because this is pathologically returned as a URI from QueryCatalog
-				// strEq(ba1.Path, ba2.Path, "Path") &&
-				strEq(ba1.Name, ba2.Name, "Name") &&
-				strEq(ba1.Description, ba2.Description, "Description") &&
-				strEq(ba1.Version, ba2.Version, "Version") &&
-				strEq(ba1.Provider, ba2.Provider, "Provider") &&
-				// Do not compare CatalogRootUri, because this is always empty when returned from QueryCatalog()
-				// strEq(ba1.CatalogRootUri, ba2.CatalogRootUri, "CatalogRootUri") &&
-				strEq(ba1.ChecksumType, ba2.ChecksumType, "ChecksumType") &&
-				strEq(ba1.Checksum, ba2.Checksum, "Checksum") &&
-				true)
-
-			if !comparisons {
-				return false
-			}
-		}
-		return true
-	}
-
-	boxArtifactArrayString := func(barr []caryatid.BoxArtifact) string {
-		var resultBuffer bytes.Buffer
-		for _, box := range barr {
-			resultBuffer.WriteString(fmt.Sprintf("%v\n", box.String()))
-		}
-		return resultBuffer.String()
-	}
+	fuzzyEqualsParams := caryatid.CatalogFuzzyEqualsParams{SkipProviderUrl: true}
 
 	for _, tc := range testCases {
 		// Join the array into a multi-line string, and add a trailing newline
-		boxes, err = queryAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery)
+		result, err = queryAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery)
 		if err != nil {
 			t.Fatalf("queryAction(*, *, '%v', '%v') returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
-		} else if !boxArtifactArrayEqual(boxes, tc.ExpectedResult) {
+		} else if !result.FuzzyEquals(&tc.ExpectedResult, fuzzyEqualsParams) {
 			t.Fatalf(
 				"queryAction(*, *, '%v', '%v') returned result:\n%v\nBut we expected:\n%v\n",
-				tc.VersionQuery, tc.ProviderQuery, boxArtifactArrayString(boxes), boxArtifactArrayString(tc.ExpectedResult))
+				tc.VersionQuery, tc.ProviderQuery, result.DisplayString(), tc.ExpectedResult.DisplayString())
 		}
 	}
 }

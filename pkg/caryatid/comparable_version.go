@@ -63,6 +63,15 @@ func NewComparableVersion(semver string) (cvers ComparableVersion, err error) {
 // CompareIntArray returns a VersionComparator to represent the relationship between two arrays of integers
 // If the arrays are not of equal length, the smaller array will have zeroes appended to it for the sake of the comparison
 func CompareIntArray(va1 []int, va2 []int) VersionComparator {
+	if len(va1) == 0 || len(va2) == 0 {
+		if len(va1) == len(va2) {
+			return VersionEquals
+		} else if len(va1) > 0 {
+			return VersionGreaterThan
+		} else { // if len(va2) > 0 {
+			return VersionLessThan
+		}
+	}
 	if va1[0] == va2[0] {
 		if len(va1) == 1 && len(va2) == 1 {
 			return VersionEquals
