@@ -389,28 +389,22 @@ func TestQueryCatalogProviders(t *testing.T) {
 	}})
 }
 
-func TestDelete(t *testing.T) {
-	testDelete := func(initial Catalog, query CatalogQueryParams, expectedResult Catalog) {
-		result, err := initial.Delete(query)
-		if err != nil {
-			t.Fatalf("Delete(%v) returned an error: %v\n", query, err)
-		} else if !expectedResult.Equals(&result) {
-			t.Fatalf("Delete(%v) returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", query, result.DisplayString(), expectedResult.DisplayString())
+func TestDeleteReferences(t *testing.T) {
+	tDelRef := func(initial Catalog, refs []BoxReference, expectedResult Catalog) {
+		result := initial.DeleteReferences(refs)
+		if !expectedResult.Equals(&result) {
+			t.Fatalf("DeleteReferences(%v) returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", refs, result.DisplayString(), expectedResult.DisplayString())
 		}
 	}
-
-	testDelete(testCatalog, CatalogQueryParams{Version: "", Provider: ""}, Catalog{
-		testParameters.BoxName, testParameters.BoxDesc, []Version{
-			Version{"0.3.5", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-			}},
-			Version{"0.3.4", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-			}},
-			Version{"0.3.5-BETA", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-			}},
+	tDelRef(testCatalog, []BoxReference{}, testCatalog)
+	tDelRef(
+		testCatalog,
+		[]BoxReference{
+			BoxReference{Version: "0.3.5", ProviderName: testParameters.ProviderNames[0]},
+			BoxReference{Version: "0.3.5-BETA", ProviderName: testParameters.ProviderNames[0]},
+			BoxReference{Version: "0.3.4", ProviderName: testParameters.ProviderNames[1]},
+		},
+		Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
 			Version{"1.0.0", []Provider{
 				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 			}},
@@ -430,7 +424,22 @@ func TestDelete(t *testing.T) {
 			Version{"2.11.1", []Provider{
 				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
 			}},
-		},
+		}},
+	)
+}
+
+func TestDelete(t *testing.T) {
+	testDelete := func(initial Catalog, query CatalogQueryParams, expectedResult Catalog) {
+		result, err := initial.DeleteQuery(query)
+		if err != nil {
+			t.Fatalf("Delete(%v) returned an error: %v\n", query, err)
+		} else if !expectedResult.Equals(&result) {
+			t.Fatalf("Delete(%v) returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", query, result.DisplayString(), expectedResult.DisplayString())
+		}
+	}
+
+	testDelete(testCatalog, CatalogQueryParams{Version: "", Provider: ""}, Catalog{
+		testParameters.BoxName, testParameters.BoxDesc, []Version{},
 	})
 	testDelete(testCatalog, CatalogQueryParams{Version: "<=1", Provider: "Feeb"}, Catalog{
 		testParameters.BoxName, testParameters.BoxDesc, []Version{

@@ -303,55 +303,78 @@ func (catalog *Catalog) deleteBoxes(vStrings []string, pStrings []string) (resul
 	return
 }
 
-type CatalogMetadata struct {
-	Versions      []string
-	Providers     []string
-	ChecksumTypes []string
+type BoxReference struct {
+	Version      string
+	ProviderName string
 }
 
-// Metadata returns a CatalogMetadata struct containing all the Version strings, Provider Names, and ChecksumTypes used in a Catalog
-func (catalog *Catalog) Metadata() (metadata CatalogMetadata) {
+func (catalog *Catalog) BoxReferences() (result []BoxReference) {
 	for _, v := range catalog.Versions {
-		if !util.StringInSlice(metadata.Versions, v.Version) {
-			metadata.Versions = append(metadata.Versions, v.Version)
-		}
-
 		for _, p := range v.Providers {
-			if !util.StringInSlice(metadata.Providers, p.Name) {
-				metadata.Providers = append(metadata.Providers, p.Name)
-			}
-			if !util.StringInSlice(metadata.ChecksumTypes, p.ChecksumType) {
-				metadata.ChecksumTypes = append(metadata.ChecksumTypes, p.ChecksumType)
-			}
+			result = append(result, BoxReference{v.Version, p.Name})
 		}
 	}
 
-	return metadata
+	return
 }
 
-// Delete removes items in the catalog that match CatalogQueryParams
-func (catalog *Catalog) Delete(params CatalogQueryParams) (result Catalog, err error) {
-	var queryResult Catalog
-	var deleteMetadata CatalogMetadata
+func (catalog *Catalog) DeleteReferences(references []BoxReference) (result Catalog) {
+	result.Name = catalog.Name
+	result.Description = catalog.Description
 
-	if params.Version == "" {
-		result = *catalog
-	} else {
-		if queryResult, err = catalog.QueryCatalogVersions(params.Version); err != nil {
-			return
+	for _, v := range catalog.Versions {
+		newVersion := Version{Version: v.Version, Providers: []Provider{}}
+		for _, p := range v.Providers {
+
+			inReferences := false
+			for _, ref := range references {
+				if v.Version == ref.Version && p.Name == ref.ProviderName {
+					inReferences = true
+				}
+			}
+
+			if !inReferences {
+				newVersion.Providers = append(newVersion.Providers, p)
+			}
+
 		}
-		fmt.Printf("qr: %v\n", queryResult)
-		deleteMetadata = queryResult.Metadata()
-		result = catalog.deleteBoxes(deleteMetadata.Versions, []string{})
+		if len(newVersion.Providers) > 0 {
+			result.Versions = append(result.Versions, newVersion)
+		}
+	}
+	return
+
+}
+
+func (catalog *Catalog) DeleteQuery(param CatalogQueryParams) (result Catalog, err error) {
+	var (
+		deleteCatalog Catalog
+
+		// vParam = CatalogQueryParams{Version: param.Version}
+		// pParam = CatalogQueryParams{Version: param.Provider}
+	)
+
+	// deleteCatalog = Catalog{}
+	// if vParam.Version != "" {
+	// 	if deleteCatalog, err = catalog.QueryCatalog(vParam); err != nil {
+	// 		return
+	// 	}
+	// }
+	// if pParam.Provider != "" {
+	// 	if deleteCatalog, err = deleteCatalog.QueryCatalog(pParam); err != nil {
+	// 		return
+	// 	}
+	// }
+
+	if deleteCatalog, err = catalog.QueryCatalog(param); err != nil {
+		return
 	}
 
-	if params.Provider != "" {
-		if queryResult, err = result.QueryCatalogProviders(params.Provider); err != nil {
-			return
-		}
-		deleteMetadata = queryResult.Metadata()
-		result = result.deleteBoxes([]string{}, deleteMetadata.Providers)
+	refs := deleteCatalog.BoxReferences()
+	fmt.Printf(deleteCatalog.DisplayString())
+	for _, r := range refs {
+		fmt.Printf("%v/%v\n", r.Version, r.ProviderName)
 	}
-
+	result = catalog.DeleteReferences(refs)
 	return
 }
