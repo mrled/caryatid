@@ -308,32 +308,40 @@ type BoxReference struct {
 	ProviderName string
 }
 
-func (catalog *Catalog) BoxReferences() (result []BoxReference) {
+func (br1 *BoxReference) Equals(br2 BoxReference) bool {
+	return br1.Version == br2.Version && br1.ProviderName == br2.ProviderName
+}
+
+type BoxReferenceList []BoxReference
+
+func (list BoxReferenceList) Contains(br BoxReference) bool {
+	for _, listItem := range list {
+		if listItem.Equals(br) {
+			return true
+		}
+	}
+	return false
+}
+
+func (catalog *Catalog) BoxReferences() (result BoxReferenceList) {
 	for _, v := range catalog.Versions {
 		for _, p := range v.Providers {
-			result = append(result, BoxReference{v.Version, p.Name})
+			result = append(result, BoxReference{Version: v.Version, ProviderName: p.Name})
 		}
 	}
 
 	return
 }
 
-func (catalog *Catalog) DeleteReferences(references []BoxReference) (result Catalog) {
+func (catalog *Catalog) DeleteReferences(references BoxReferenceList) (result Catalog) {
 	result.Name = catalog.Name
 	result.Description = catalog.Description
 
 	for _, v := range catalog.Versions {
 		newVersion := Version{Version: v.Version, Providers: []Provider{}}
 		for _, p := range v.Providers {
-
-			inReferences := false
-			for _, ref := range references {
-				if v.Version == ref.Version && p.Name == ref.ProviderName {
-					inReferences = true
-				}
-			}
-
-			if !inReferences {
+			thisBox := BoxReference{Version: v.Version, ProviderName: p.Name}
+			if !references.Contains(thisBox) {
 				newVersion.Providers = append(newVersion.Providers, p)
 			}
 
@@ -349,32 +357,18 @@ func (catalog *Catalog) DeleteReferences(references []BoxReference) (result Cata
 func (catalog *Catalog) DeleteQuery(param CatalogQueryParams) (result Catalog, err error) {
 	var (
 		deleteCatalog Catalog
-
-		// vParam = CatalogQueryParams{Version: param.Version}
-		// pParam = CatalogQueryParams{Version: param.Provider}
 	)
-
-	// deleteCatalog = Catalog{}
-	// if vParam.Version != "" {
-	// 	if deleteCatalog, err = catalog.QueryCatalog(vParam); err != nil {
-	// 		return
-	// 	}
-	// }
-	// if pParam.Provider != "" {
-	// 	if deleteCatalog, err = deleteCatalog.QueryCatalog(pParam); err != nil {
-	// 		return
-	// 	}
-	// }
 
 	if deleteCatalog, err = catalog.QueryCatalog(param); err != nil {
 		return
 	}
 
 	refs := deleteCatalog.BoxReferences()
-	fmt.Printf(deleteCatalog.DisplayString())
-	for _, r := range refs {
-		fmt.Printf("%v/%v\n", r.Version, r.ProviderName)
-	}
+	// fmt.Printf("deleteCatalog:\n%v\n", deleteCatalog.DisplayString())
+	// for _, r := range refs {
+	// 	fmt.Printf("- %v/%v\n", r.Version, r.ProviderName)
+	// }
 	result = catalog.DeleteReferences(refs)
+	// fmt.Printf("result: \n%v\n", result.DisplayString())
 	return
 }
