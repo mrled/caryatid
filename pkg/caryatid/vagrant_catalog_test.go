@@ -388,3 +388,74 @@ func TestQueryCatalogProviders(t *testing.T) {
 		}},
 	}})
 }
+
+func TestDelete(t *testing.T) {
+	testDelete := func(initial Catalog, query CatalogQueryParams, expectedResult Catalog) {
+		result, err := initial.Delete(query)
+		if err != nil {
+			t.Fatalf("Delete(%v) returned an error: %v\n", query, err)
+		} else if !expectedResult.Equals(&result) {
+			t.Fatalf("Delete(%v) returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", query, result.DisplayString(), expectedResult.DisplayString())
+		}
+	}
+
+	testDelete(testCatalog, CatalogQueryParams{Version: "", Provider: ""}, Catalog{
+		testParameters.BoxName, testParameters.BoxDesc, []Version{
+			Version{"0.3.5", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"0.3.4", []Provider{
+				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"0.3.5-BETA", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.0.0", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.0.1", []Provider{
+				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.4.5", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.2.3", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.2.4", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"2.11.1", []Provider{
+				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+		},
+	})
+	testDelete(testCatalog, CatalogQueryParams{Version: "<=1", Provider: "Feeb"}, Catalog{
+		testParameters.BoxName, testParameters.BoxDesc, []Version{
+			Version{"1.4.5", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.2.3", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.2.4", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+		},
+	})
+	testDelete(testCatalog, CatalogQueryParams{Version: "<=1.0.0", Provider: "Feeb"}, Catalog{
+		testParameters.BoxName, testParameters.BoxDesc, []Version{
+			Version{"1.4.5", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.2.3", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+			Version{"1.2.4", []Provider{
+				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			}},
+		},
+	})
+}

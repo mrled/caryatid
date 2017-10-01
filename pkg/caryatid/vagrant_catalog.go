@@ -30,6 +30,8 @@ import (
 	"log"
 	"regexp"
 	"strings"
+
+	"github.com/mrled/caryatid/internal/util"
 )
 
 // Provider represents part of the structure of a Vagrant catalog
@@ -273,5 +275,83 @@ func (catalog *Catalog) QueryCatalog(params CatalogQueryParams) (result Catalog,
 	result = pResult
 	result.Name = catalog.Name
 	result.Description = catalog.Description
+	return
+}
+
+// deleteBoxes deletes references to artifacts whose Version matches an item in vStrings or Provider matches an item in pStrings
+// Note that this function *only* works with *exact* matches.
+func (catalog *Catalog) deleteBoxes(vStrings []string, pStrings []string) (result Catalog) {
+	result.Name = catalog.Name
+	result.Description = catalog.Description
+
+	for _, version := range catalog.Versions {
+
+		if !util.StringInSlice(vStrings, version.Version) {
+			newVersion := Version{version.Version, []Provider{}}
+			for _, provider := range version.Providers {
+				if !util.StringInSlice(pStrings, provider.Name) {
+					newVersion.Providers = append(newVersion.Providers, provider)
+				}
+			}
+
+			if len(newVersion.Providers) > 0 {
+				result.Versions = append(result.Versions, newVersion)
+			}
+		}
+	}
+
+	return
+}
+
+type CatalogMetadata struct {
+	Versions      []string
+	Providers     []string
+	ChecksumTypes []string
+}
+
+// Metadata returns a CatalogMetadata struct containing all the Version strings, Provider Names, and ChecksumTypes used in a Catalog
+func (catalog *Catalog) Metadata() (metadata CatalogMetadata) {
+	for _, v := range catalog.Versions {
+		if !util.StringInSlice(metadata.Versions, v.Version) {
+			metadata.Versions = append(metadata.Versions, v.Version)
+		}
+
+		for _, p := range v.Providers {
+			if !util.StringInSlice(metadata.Providers, p.Name) {
+				metadata.Providers = append(metadata.Providers, p.Name)
+			}
+			if !util.StringInSlice(metadata.ChecksumTypes, p.ChecksumType) {
+				metadata.ChecksumTypes = append(metadata.ChecksumTypes, p.ChecksumType)
+			}
+		}
+	}
+
+	return metadata
+}
+
+// Delete removes items in the catalog that match CatalogQueryParams
+func (catalog *Catalog) Delete(params CatalogQueryParams) (result Catalog, err error) {
+	var queryResult Catalog
+	var deleteMetadata CatalogMetadata
+
+	if params.Version == "" {
+		result = *catalog
+	} else {
+		if queryResult, err = catalog.QueryCatalogVersions(params.Version); err != nil {
+			return
+		}
+		fmt.Printf("qr: %v\n", queryResult)
+		deleteMetadata = queryResult.Metadata()
+		result = catalog.deleteBoxes(deleteMetadata.Versions, []string{})
+	}
+
+	if params.Provider != "" {
+		if queryResult, err = result.QueryCatalogProviders(params.Provider); err != nil {
+			return
+		}
+		deleteMetadata = queryResult.Metadata()
+		result = result.deleteBoxes([]string{}, deleteMetadata.Providers)
+	}
+
 	return
 }

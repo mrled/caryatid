@@ -60,3 +60,13 @@ func CopyFile(src string, dst string) (written int64, err error) {
 	err = out.Close()
 	return
 }
+
+// StringInSlice tests whether a string is in a slice of strings
+func StringInSlice(slice []string, str string) bool {
+	for _, item := range slice {
+		if str == item {
+			return true
+		}
+	}
+	return false
+}
