@@ -236,7 +236,7 @@ type TestParameters struct {
 	Digest        string
 }
 
-var testParameters = TestParameters{
+var tParams = TestParameters{
 	[]string{"StrongSapling", "FeebleFungus"},
 	"http://example.com/this/is/my/box",
 	"vagrant_catalog_test_box",
@@ -245,35 +245,35 @@ var testParameters = TestParameters{
 	"0xB00B1E5",
 }
 
-var testCatalog = Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+var testCatalog = Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 	Version{"0.3.5", []Provider{
-		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"0.3.4", []Provider{
-		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"0.3.5-BETA", []Provider{
-		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
+		Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"1.0.0", []Provider{
-		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"1.0.1", []Provider{
-		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"1.4.5", []Provider{
-		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"1.2.3", []Provider{
-		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
+		Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"1.2.4", []Provider{
-		Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 	Version{"2.11.1", []Provider{
-		Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+		Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 	}},
 }}
 
@@ -287,38 +287,38 @@ func TestQueryCatalogVersions(t *testing.T) {
 		}
 	}
 
-	testQueryVers(&testCatalog, ">2", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	testQueryVers(&testCatalog, ">2", &Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 		Version{"2.11.1", []Provider{
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 	}})
-	testQueryVers(&testCatalog, "<=0.3.5", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	testQueryVers(&testCatalog, "<=0.3.5", &Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 		Version{"0.3.5", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"0.3.4", []Provider{
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"0.3.5-BETA", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 	}})
-	testQueryVers(&testCatalog, "0.3.5", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	testQueryVers(&testCatalog, "0.3.5", &Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 		Version{"0.3.5", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"0.3.5-BETA", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 	}})
-	testQueryVers(&testCatalog, "=0.3.5", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	testQueryVers(&testCatalog, "=0.3.5", &Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 		Version{"0.3.5", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 	}})
-	testQueryVers(&testCatalog, "=0.3.6", &Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{}})
+	testQueryVers(&testCatalog, "=0.3.6", &Catalog{tParams.BoxName, tParams.BoxDesc, []Version{}})
 }
 
 func TestQueryCatalogProviders(t *testing.T) {
@@ -330,61 +330,61 @@ func TestQueryCatalogProviders(t *testing.T) {
 			t.Fatalf("QueryCatalogProviders() returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", result, expectedResult)
 		}
 	}
-	testQueryProv(testCatalog, "^Strong", Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	testQueryProv(testCatalog, "^Strong", Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 		Version{"0.3.5", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"0.3.5-BETA", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.0.0", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.4.5", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.2.3", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.2.4", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 	}})
-	testQueryProv(testCatalog, "Sapling$", Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	testQueryProv(testCatalog, "Sapling$", Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 		Version{"0.3.5", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"0.3.5-BETA", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.0.0", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.4.5", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.2.3", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.2.4", []Provider{
-			Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 	}})
-	testQueryProv(testCatalog, "F", Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+	testQueryProv(testCatalog, "F", Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 		Version{"0.3.4", []Provider{
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"0.3.5-BETA", []Provider{
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.0.1", []Provider{
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"1.2.3", []Provider{
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 		Version{"2.11.1", []Provider{
-			Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+			Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 		}},
 	}})
 }
@@ -400,32 +400,32 @@ func TestDeleteReferences(t *testing.T) {
 	tDelRef(
 		testCatalog,
 		[]BoxReference{
-			BoxReference{Version: "0.3.5", ProviderName: testParameters.ProviderNames[0]},
-			BoxReference{Version: "0.3.5-BETA", ProviderName: testParameters.ProviderNames[0]},
-			BoxReference{Version: "0.3.4", ProviderName: testParameters.ProviderNames[1]},
+			BoxReference{Version: "0.3.5", ProviderName: tParams.ProviderNames[0]},
+			BoxReference{Version: "0.3.5-BETA", ProviderName: tParams.ProviderNames[0]},
+			BoxReference{Version: "0.3.4", ProviderName: tParams.ProviderNames[1]},
 		},
-		Catalog{testParameters.BoxName, testParameters.BoxDesc, []Version{
+		Catalog{tParams.BoxName, tParams.BoxDesc, []Version{
 			Version{"0.3.5-BETA", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.0.0", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.0.1", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.4.5", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.2.3", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.2.4", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"2.11.1", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 		}},
 	)
@@ -442,63 +442,63 @@ func TestDelete(t *testing.T) {
 	}
 
 	testDelete(testCatalog, CatalogQueryParams{Version: "", Provider: ""}, Catalog{
-		testParameters.BoxName, testParameters.BoxDesc, []Version{},
+		tParams.BoxName, tParams.BoxDesc, []Version{},
 	})
 	testDelete(testCatalog, CatalogQueryParams{Version: "<=1", Provider: "Feeb"}, Catalog{
-		testParameters.BoxName, testParameters.BoxDesc, []Version{
+		tParams.BoxName, tParams.BoxDesc, []Version{
 			Version{"0.3.5", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"0.3.5-BETA", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.0.0", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.0.1", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.4.5", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.2.3", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.2.4", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"2.11.1", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 		},
 	})
 	testDelete(testCatalog, CatalogQueryParams{Version: "<=1.0.0", Provider: "Feeb"}, Catalog{
-		testParameters.BoxName, testParameters.BoxDesc, []Version{
+		tParams.BoxName, tParams.BoxDesc, []Version{
 			Version{"0.3.5", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"0.3.5-BETA", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.0.0", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.0.1", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.4.5", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.2.3", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"1.2.4", []Provider{
-				Provider{testParameters.ProviderNames[0], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[0], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 			Version{"2.11.1", []Provider{
-				Provider{testParameters.ProviderNames[1], testParameters.BoxUri, testParameters.DigestType, testParameters.Digest},
+				Provider{tParams.ProviderNames[1], tParams.BoxUri, tParams.DigestType, tParams.Digest},
 			}},
 		},
 	})
