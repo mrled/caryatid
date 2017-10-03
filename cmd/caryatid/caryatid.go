@@ -191,48 +191,43 @@ func deleteAction(catalogRootUri string, boxName string, versionQuery string, pr
 }
 
 func main() {
+	cFlag := flag.NewFlagSet("Caryatid", flag.PanicOnError)
+	cFlag.Usage = func() {
+		// What the fuck, people https://github.com/golang/go/issues/16955
+		fmt.Printf("Caryatid usage:\n")
+		cFlag.PrintDefaults()
+	}
 
-	// Flags with default arguments
-	actionFlag := flag.String(
-		"action",
-		"show",
+	actionFlag := cFlag.String(
+		"action", "",
 		"One of 'show', 'create-test-box', 'query', 'add', or 'delete'.")
-
-	// Globally required flags
-	catalogFlag := flag.String(
-		"catalog",
-		"",
+	catalogFlag := cFlag.String(
+		"catalog", "",
 		"URI for the Vagrant Catalog to operate on")
-
-	boxFlag := flag.String(
+	boxFlag := cFlag.String(
 		"box", "", "Local path to a box file")
-
 	// TODO: Validate -version when adding a box
 	// (Should also be done in the packer post-processor, I guess)
-	versionFlag := flag.String(
-		"version",
-		"",
+	versionFlag := cFlag.String(
+		"version", "",
 		"A version specifier. When querying boxes or deleting a box, this restricts the query to only the versions matched, and its value may include specifiers such as less-than signs, like '<=1.2.3'. When adding a box, the version must be exact, and such specifiers are not supported.")
-	descriptionFlag := flag.String(
-		"description",
-		"",
+	descriptionFlag := cFlag.String(
+		"description", "",
 		"A description for a box in the Vagrant catalog")
-
-	providerFlag := flag.String(
-		"provider",
-		"",
+	providerFlag := cFlag.String(
+		"provider", "",
 		"The name of a provider. When querying boxes or deleting a box, this restricts the query to only the providers matched, and its value may include asterisks to glob such as '*-iso'. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
-
-	nameFlag := flag.String(
-		"name",
-		"",
+	nameFlag := cFlag.String(
+		"name", "",
 		"The name of the box tracked in the Vagrant catalog. When deleting a box, this restricts the query to only boxes matching this name, and may include asterisks for globbing. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
-	flag.Parse()
+
+	cFlag.Parse(os.Args)
 
 	var (
 		err    error
 		result string
 	)
+
 	switch *actionFlag {
 	case "show":
 		result, err = showAction(*catalogFlag, *boxFlag)
@@ -248,7 +243,7 @@ func main() {
 	case "delete":
 		err = deleteAction(*catalogFlag, *nameFlag, *versionFlag, *providerFlag)
 	default:
-		err = fmt.Errorf("No such action '%v'\n", *actionFlag)
+		cFlag.Usage()
 	}
 
 	if err != nil {
