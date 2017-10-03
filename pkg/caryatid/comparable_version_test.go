@@ -36,6 +36,13 @@ func TestNewComparableVersion(t *testing.T) {
 		TestCase{"JUSTTEXT", []int{}, "", true},
 		TestCase{"-1.2.3-PREREL", []int{}, "", true},
 		TestCase{"1.-2.3-PRE", []int{}, "", true},
+		// We use NewComparableVersion() to check whether a version is valid in some places;
+		// do not remove these tests without changing that code
+		TestCase{"<=1.0.0", []int{}, "", true},
+		TestCase{">=1.0.0", []int{}, "", true},
+		TestCase{"=1.0.0", []int{}, "", true},
+		TestCase{"<1.0.0", []int{}, "", true},
+		TestCase{">1.0.0", []int{}, "", true},
 	}
 
 	for _, tc := range testCases {

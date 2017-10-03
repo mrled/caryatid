@@ -2,10 +2,6 @@
 Caryatid standalone program
 
 A command line application for managing Vagrant catalogs
-
-caryatid add --uri uri:///path/to/catalog.json --name "testbox" --box /local/path/to/name.box --version 1.2.5
-caryatid query --uri uri:///path/to/catalog.json --version ">=1.2.5" --provider "-iso" --name "asdf"
-caryatid delete --uri uri:///path/to/catalog.json --version "<1.0.0" --provider "-iso" --name "asdf"
 */
 
 package main
@@ -35,6 +31,13 @@ func init() {
 		// What the fuck, people https://github.com/golang/go/issues/16955
 		fmt.Printf("Caryatid usage:\n")
 		cFlag.PrintDefaults()
+		fmt.Printf("\n")
+
+		fmt.Printf("EXAMPLE: Add a box to a catalog:\n")
+		fmt.Printf("caryatid add -catalog uri:///path/to/catalog.json -name testbox -description 'this is a test box' -box /local/path/to/name.box -version 1.2.5\n\n")
+
+		fmt.Printf("EXAMPLE: Query a catalog:\n")
+		fmt.Printf("caryatid query -catalog uri:///path/to/catalog.json -version '>=1.2.5'\n\n")
 	}
 
 	cFlag.StringVar(
@@ -69,24 +72,47 @@ func main() {
 		panic(fmt.Sprintf("Flag parsing error: %v\n", err))
 	}
 
+	missingFlags := func(flags ...string) {
+		fmt.Printf("ERROR: Missing one or more flags: ")
+		for _, f := range flags {
+			fmt.Printf("-%v ", f)
+		}
+		fmt.Printf("\n\n")
+		cFlag.Usage()
+		os.Exit(1)
+	}
+
 	switch actionFlag {
 	case "show":
+		if catalogFlag == "" || boxFlag == "" {
+			missingFlags("catalog", "box")
+		}
 		result, err = showAction(catalogFlag, boxFlag)
 		fmt.Printf("%v\n", result)
 	case "create-test-box":
+		if boxFlag == "" || providerFlag == "" {
+			missingFlags("box", "provider")
+		}
 		err = createTestBoxAction(boxFlag, providerFlag)
 	case "add":
-		// TODO: Validate -version when adding a box
-		// (Should also be done in the packer post-processor, I guess)
+		if boxFlag == "" || nameFlag == "" || descriptionFlag == "" || versionFlag == "" || catalogFlag == "" {
+			missingFlags("box", "name", "description", "version", "catalog")
+		}
 		err = addAction(boxFlag, nameFlag, descriptionFlag, versionFlag, catalogFlag)
 	case "query":
+		if catalogFlag == "" || nameFlag == "" {
+			missingFlags("catalog", "name")
+		}
 		var resultCata caryatid.Catalog
 		resultCata, err = queryAction(catalogFlag, nameFlag, versionFlag, providerFlag)
 		fmt.Printf(resultCata.DisplayString())
 	case "delete":
+		if catalogFlag == "" || nameFlag == "" {
+			missingFlags("catalog", "name")
+		}
 		err = deleteAction(catalogFlag, nameFlag, versionFlag, providerFlag)
 	default:
-		fmt.Printf("Unknown action: %v\n", actionFlag)
+		fmt.Printf("Unknown (or missing) -action: '%v'\n", actionFlag)
 		cFlag.Usage()
 	}
 

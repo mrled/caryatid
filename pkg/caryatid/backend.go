@@ -77,6 +77,9 @@ func (bm *BackendManager) SaveCatalog(catalog Catalog) (err error) {
 
 func (bm *BackendManager) AddBox(box *BoxArtifact) (err error) {
 	catalog, err := bm.GetCatalog()
+	if _, err = NewComparableVersion(box.Version); err != nil {
+		log.Printf("AddBox(): Invalid version '%v'\n", box.Version)
+	}
 	if err != nil {
 		log.Printf("AddBox(): Error retrieving catalog from backend: %v\n", err)
 		return
