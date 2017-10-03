@@ -54,10 +54,25 @@ More specific / smaller items than the roadmap in the readme.
     and one would exist for each Catalog/Version/Provider combination.
 
     However, CatalogUri + VersionString + ProviderName would be all that is necessary to identify a box,
-    so functions like Equals() should be written and documented carefully.
+    so functions like `Equals()` should be written and documented carefully.
     
     (I have already dealt with this in a small way with BoxReference,
     but I'm thinking of something more comprehensive.)
+
+ *  Improve CLI argument parsing and help
+
+    1)  Subcommands
+
+        The `docker` arguments are pretty complex, maybe go see what they're doing
+
+    2)  Better messages to the user
+
+        Subcommands are part of this,
+        but basically make it more discoverable and less trial-and-error-y
+
+    I strongly suspect this will require using something other than the standard `flags` module,
+    which I have come to loathe.
+    Maybe someone ported Python's `argparse`?
 
 ## Far future
 
