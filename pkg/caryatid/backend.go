@@ -98,7 +98,36 @@ func (bm *BackendManager) AddBox(box *BoxArtifact) (err error) {
 
 // TODO: Want this to call Backend.DeleteBoxFile also
 func (bm *BackendManager) DeleteBox(params CatalogQueryParams) (err error) {
-	panic("TODO: DeleteBox() NOT IMPLEMENTED")
+	var (
+		catalog       Catalog
+		deleteCatalog Catalog
+		refs          BoxReferenceList
+	)
+
+	if catalog, err = bm.GetCatalog(); err != nil {
+		log.Printf("DeleteBox(): Error retrieving catalog from backend: %v\n", err)
+		return
+	}
+	if deleteCatalog, err = catalog.QueryCatalog(params); err != nil {
+		log.Printf("DeleteBox(): Error querying catalog: %v\n", err)
+		return
+	}
+
+	refs = deleteCatalog.BoxReferences()
+	catalog = catalog.DeleteReferences(refs)
+	if err = bm.SaveCatalog(catalog); err != nil {
+		log.Printf("DeleteBox(): Error saving catalog: %v\n", err)
+		return
+	}
+
+	for _, ref := range refs {
+		if err = bm.Backend.DeleteFile(ref.Uri); err != nil {
+			log.Printf("DeleteBox(): Error copying box file: %v\n", err)
+			return
+		}
+	}
+
+	return
 }
 
 /*
@@ -123,6 +152,10 @@ type CaryatidBackend interface {
 
 	// Copy the Vagrant box to the location referenced in the Vagrant catalog
 	CopyBoxFile(*BoxArtifact) error
+
+	// Delete a file with a given URI
+	// If the URI's .Scheme doesn't match the value of .Scheme(), error
+	DeleteFile(uri string) error
 
 	// Return the scheme as would be used in the URI for the backend,
 	// such as "file" for a "file:///tmp/catalog.json" catalog
@@ -160,6 +193,17 @@ func (backend *CaryatidBaseBackend) SetCatalogBytes(serializedCatalog []byte) (e
 func (backend *CaryatidBaseBackend) CopyBoxFile(box *BoxArtifact) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
+}
+
+func (backend *CaryatidBaseBackend) DeleteFile(uri string) error {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return fmt.Errorf("Could not parse '%v' as URI: %v", uri, err)
+	}
+	if u.Scheme != backend.Scheme() {
+		return fmt.Errorf("Expected scheme '%v' but was given a URI with scheme '%v'", backend.Scheme(), u.Scheme)
+	}
+	return fmt.Errorf("NOT IMPLEMENTED")
 }
 
 func (backend *CaryatidBaseBackend) Scheme() string {

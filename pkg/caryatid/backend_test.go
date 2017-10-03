@@ -40,7 +40,11 @@ func (cb *CaryatidTestBackend) SetCatalogBytes(serializedCatalog []byte) (err er
 	return nil
 }
 
-func (cb *CaryatidTestBackend) CopyBoxFile(box *BoxArtifact) (err error) {
+func (cb *CaryatidTestBackend) CopyBoxFile(box *BoxArtifact) error {
+	return nil
+}
+
+func (bc *CaryatidTestBackend) DeleteFile(uri string) error {
 	return nil
 }
 

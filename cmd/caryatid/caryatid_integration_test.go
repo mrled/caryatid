@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/mrled/caryatid/internal/util"
 	"github.com/mrled/caryatid/pkg/caryatid"
 )
 
@@ -369,5 +370,182 @@ func TestQueryAction(t *testing.T) {
 }
 
 func TestDeleteAction(t *testing.T) {
-	t.Logf("TODO: TestDeleteAction() HAS NO TESTS DEFINED\n")
+	var (
+		err         error
+		boxArtifact caryatid.BoxArtifact
+		result      caryatid.Catalog
+
+		boxProvider1 = "StrongSapling"
+		boxProvider2 = "FeebleFungus"
+		boxPath1     = path.Join(integrationTestDir, "incoming-TestDeleteActionBox-1.box")
+		boxPath2     = path.Join(integrationTestDir, "incoming-TestDeleteActionBox-2.box")
+		boxVersions1 = []string{"0.3.5", "0.3.5-BETA", "1.0.0"}
+		boxVersions2 = []string{"0.3.4", "0.3.5-BETA", "1.0.1"}
+
+		boxName    = "TestDeleteActionBox"
+		boxDesc    = "this is a test box"
+		digestType = "TDABDType"
+		digest     = "0xB00B1E5"
+	)
+
+	// Create the *input* boxes - that is, boxes that would come from packer-post-processor-vagrant
+	if err = caryatid.CreateTestBoxFile(boxPath1, boxProvider1, true); err != nil {
+		t.Fatalf("TestAddAction(): Error trying to create test box file: %v\n", err)
+	}
+	if err = caryatid.CreateTestBoxFile(boxPath2, boxProvider2, true); err != nil {
+		t.Fatalf("TestAddAction(): Error trying to create test box file: %v\n", err)
+	}
+
+	type ExpectedFile struct {
+		Name   string
+		Exists bool
+	}
+	type TestCase struct {
+		VersionQuery   string
+		ProviderQuery  string
+		ExpectedResult caryatid.Catalog
+		ExpectedFiles  []ExpectedFile
+	}
+
+	boxVersions1 = []string{"0.3.5", "0.3.5-BETA", "1.0.0"}
+	boxVersions2 = []string{"0.3.4", "0.3.5-BETA", "1.0.1"}
+
+	testCases := []TestCase{
+		TestCase{
+			"", "",
+			caryatid.Catalog{Name: boxName, Description: boxDesc, Versions: []caryatid.Version{}},
+			[]ExpectedFile{
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.0", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.4", boxProvider2), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider2), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.1", boxProvider2), Exists: false},
+			},
+		},
+		TestCase{
+			"", "rongSap",
+			caryatid.Catalog{Name: boxName, Description: boxDesc, Versions: []caryatid.Version{
+				caryatid.Version{Version: "0.3.5-BETA", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider2, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+				caryatid.Version{Version: "0.3.4", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider2, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+				caryatid.Version{Version: "1.0.1", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider2, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+			}},
+			[]ExpectedFile{
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.0", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.4", boxProvider2), Exists: true},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider2), Exists: true},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.1", boxProvider2), Exists: true},
+			},
+		},
+		TestCase{
+			"<1", "",
+			caryatid.Catalog{Name: boxName, Description: boxDesc, Versions: []caryatid.Version{
+				caryatid.Version{Version: "1.0.0", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider1, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+				caryatid.Version{Version: "1.0.1", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider2, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+			}},
+			[]ExpectedFile{
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.0", boxProvider1), Exists: true},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.4", boxProvider2), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider2), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.1", boxProvider2), Exists: true},
+			},
+		},
+		TestCase{
+			"<1", ".*rongSap.*",
+			caryatid.Catalog{Name: boxName, Description: boxDesc, Versions: []caryatid.Version{
+				caryatid.Version{Version: "0.3.5-BETA", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider2, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+				caryatid.Version{Version: "1.0.0", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider1, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+				caryatid.Version{Version: "0.3.4", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider2, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+				caryatid.Version{Version: "1.0.1", Providers: []caryatid.Provider{
+					caryatid.Provider{Name: boxProvider2, Url: "FAKEURI", ChecksumType: digestType, Checksum: digest},
+				}},
+			}},
+			[]ExpectedFile{
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider1), Exists: false},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.0", boxProvider1), Exists: true},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.4", boxProvider2), Exists: true},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "0.3.5-BETA", boxProvider2), Exists: true},
+				ExpectedFile{Name: fmt.Sprintf("%v_%v_%v.box", boxName, "1.0.1", boxProvider2), Exists: true},
+			},
+		},
+	}
+
+	for idx, tc := range testCases {
+
+		catalogRootPath := fmt.Sprintf("%v/%v_%v", integrationTestDir, boxName, idx)
+		if err = os.MkdirAll(catalogRootPath, 0700); err != nil {
+			t.Fatalf("Error creating catalogRootPath: %v\n", err)
+		}
+
+		catalogRootUri := fmt.Sprintf("file://%v", catalogRootPath)
+
+		// Set up manager. Do this separately each time so we can use a different catalogRootUri
+		manager, err := getManager(catalogRootUri, boxName)
+		if err != nil {
+			t.Fatalf("Error getting a BackendManager: %v\n", err)
+		}
+
+		// Now copy the input boxes multiple times to the Catalog,
+		// as if they were different versions each time
+		for _, version := range boxVersions1 {
+			boxArtifact = caryatid.BoxArtifact{Path: boxPath1, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider1, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
+			if err = manager.AddBox(&boxArtifact); err != nil {
+				t.Fatalf("Error adding box metadata to catalog: %v\n", err)
+				return
+			}
+		}
+		for _, version := range boxVersions2 {
+			boxArtifact = caryatid.BoxArtifact{Path: boxPath2, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider2, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
+			if err = manager.AddBox(&boxArtifact); err != nil {
+				t.Fatalf("Error adding box metadata to catalog: %v\n", err)
+				return
+			}
+		}
+
+		if err = deleteAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery); err != nil {
+			t.Fatalf("deleteAction(*, *, '%v', '%v') returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
+		}
+
+		fuzzyEqualsParams := caryatid.CatalogFuzzyEqualsParams{SkipProviderUrl: true, LogMismatch: true}
+		if result, err = queryAction(catalogRootUri, boxName, "", ""); err != nil {
+			t.Fatalf("queryAction(*, *, '%v', '%v') returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
+		} else if !result.FuzzyEquals(&tc.ExpectedResult, fuzzyEqualsParams) {
+			t.Fatalf(
+				"queryAction(*, *, '%v', '%v') returned result:\n%v\nBut we expected:\n%v\n",
+				tc.VersionQuery, tc.ProviderQuery, result.DisplayString(), tc.ExpectedResult.DisplayString())
+		}
+
+		for _, ef := range tc.ExpectedFiles {
+			existStr := "exist"
+			if !ef.Exists {
+				existStr = "not exist"
+			}
+			efPath := path.Join(catalogRootPath, boxName, ef.Name)
+
+			if util.PathExists(efPath) != ef.Exists {
+				t.Fatalf("Expected path '%v' to %v, but found the reverse\n", efPath, existStr)
+			}
+		}
+	}
 }

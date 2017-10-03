@@ -5,5 +5,5 @@ import (
 )
 
 func TestCaryatidLocalFileBackend(t *testing.T) {
-	t.Logf("NOT IMPLEMENTED")
+	t.Logf("NOT IMPLEMENTED\n")
 }

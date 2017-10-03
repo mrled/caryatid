@@ -104,6 +104,29 @@ func (backend *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err erro
 	return
 }
 
+func (backend *CaryatidLocalFileBackend) DeleteFile(uri string) (err error) {
+	var (
+		u    *url.URL
+		path string
+	)
+	u, err = url.Parse(uri)
+	if err != nil {
+		return fmt.Errorf("Could not parse '%v' as URI: %v", uri, err)
+	}
+	if u.Scheme != backend.Scheme() {
+		return fmt.Errorf("Expected scheme '%v' but was given a URI with scheme '%v'", backend.Scheme(), u.Scheme)
+	}
+
+	if path, err = getValidLocalPath(uri); err != nil {
+		return
+	}
+	if err = os.Remove(path); err != nil {
+		return
+	}
+
+	return
+}
+
 func (backend *CaryatidLocalFileBackend) Scheme() string {
 	return "file"
 }

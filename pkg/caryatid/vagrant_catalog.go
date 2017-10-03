@@ -306,8 +306,11 @@ func (catalog *Catalog) deleteBoxes(vStrings []string, pStrings []string) (resul
 type BoxReference struct {
 	Version      string
 	ProviderName string
+	Uri          string
 }
 
+// Compare the two key fields of a BoxReference: Version and ProviderName
+// Within a given Catalog, these two values should be enough to uniquely identify a box
 func (br1 *BoxReference) Equals(br2 BoxReference) bool {
 	return br1.Version == br2.Version && br1.ProviderName == br2.ProviderName
 }
@@ -326,7 +329,7 @@ func (list BoxReferenceList) Contains(br BoxReference) bool {
 func (catalog *Catalog) BoxReferences() (result BoxReferenceList) {
 	for _, v := range catalog.Versions {
 		for _, p := range v.Providers {
-			result = append(result, BoxReference{Version: v.Version, ProviderName: p.Name})
+			result = append(result, BoxReference{Version: v.Version, ProviderName: p.Name, Uri: p.Url})
 		}
 	}
 
@@ -354,6 +357,8 @@ func (catalog *Catalog) DeleteReferences(references BoxReferenceList) (result Ca
 
 }
 
+// TODO: Consider refactoring / removing
+// Currently this is only used in tests, while the BackendManager has to call QueryCatalog() and DeleteReferences() itself
 func (catalog *Catalog) DeleteQuery(param CatalogQueryParams) (result Catalog, err error) {
 	var (
 		deleteCatalog Catalog
@@ -364,11 +369,6 @@ func (catalog *Catalog) DeleteQuery(param CatalogQueryParams) (result Catalog, e
 	}
 
 	refs := deleteCatalog.BoxReferences()
-	// fmt.Printf("deleteCatalog:\n%v\n", deleteCatalog.DisplayString())
-	// for _, r := range refs {
-	// 	fmt.Printf("- %v/%v\n", r.Version, r.ProviderName)
-	// }
 	result = catalog.DeleteReferences(refs)
-	// fmt.Printf("result: \n%v\n", result.DisplayString())
 	return
 }

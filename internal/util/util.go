@@ -12,15 +12,10 @@ import (
 )
 
 // PathExists tests whether path exists
-func PathExists(path string) (bool, error) {
+// Note that Stat() may return other errors, which we do not check for
+func PathExists(path string) bool {
 	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, err
+	return !os.IsNotExist(err)
 }
 
 // Sha1sum returns the SHA1 hash for a file on the filesystem
