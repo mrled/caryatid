@@ -199,7 +199,11 @@ type CatalogQueryParams struct {
 	Provider string
 }
 
-// QueryCatalogVersions returns a new Catalog containing only Versions that have a .Version property matching the versionquery input string
+// QueryCatalogVersions returns a new Catalog containing only Versions match the versionquery input string
+// If the caller has provided an *exact* version like "=1.0.0",
+// assume they do NOT want to find prerelease-mismatched versions;
+// If the caller has provided a version *range* like "<=1.0.0",
+// assume they DO want to find prerelease-mismatched versions.
 func (catalog *Catalog) QueryCatalogVersions(versionquery string) (result Catalog, err error) {
 	var (
 		comparator VersionComparator
@@ -214,14 +218,6 @@ func (catalog *Catalog) QueryCatalogVersions(versionquery string) (result Catalo
 	} else if len(queryVers.Version) == 0 {
 		result = *catalog
 		return
-	}
-
-	// If the user has provided an *exact* version like "=1.0.0",
-	// assume they do NOT want to find prerelease-mismatched versions;
-	// If the user has provided a version *range* like "<=1.0.0",
-	// assume they DO want to find prerelease-mismatched versions.
-	if queryQual.Contains(VersionComparatorList{VersionEquals}) && len(queryQual) > 1 {
-		queryQual = append(queryQual, VersionEqualsPrereleaseMismatch)
 	}
 
 	for _, version := range catalog.Versions {

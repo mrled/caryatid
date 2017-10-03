@@ -81,6 +81,9 @@ func NewComparableVersion(semver string) (cvers ComparableVersion, err error) {
 
 // NewVersionComparator returns a new VersionComparator from a comparator string
 // Input may be one of < > = <= >=
+// NOTE that <= and >= comparator strings will also match equal versions with different prereleases
+// so `=` will return only VersionEquals,
+// but `>=` will return VersionEquals, VersionEqualsPrereleaseMismatch, and VersionGreaterThan
 func NewVersionComparator(compstring string) (comparators VersionComparatorList, err error) {
 	switch compstring {
 	case "<":
@@ -90,9 +93,9 @@ func NewVersionComparator(compstring string) (comparators VersionComparatorList,
 	case "=":
 		comparators = VersionComparatorList{VersionEquals}
 	case "<=":
-		comparators = VersionComparatorList{VersionEquals, VersionLessThan}
+		comparators = VersionComparatorList{VersionEquals, VersionEqualsPrereleaseMismatch, VersionLessThan}
 	case ">=":
-		comparators = VersionComparatorList{VersionEquals, VersionGreaterThan}
+		comparators = VersionComparatorList{VersionEquals, VersionEqualsPrereleaseMismatch, VersionGreaterThan}
 	default:
 		err = fmt.Errorf("Invalid comparator string '%v'\n", compstring)
 	}
