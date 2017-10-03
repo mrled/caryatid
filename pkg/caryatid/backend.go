@@ -99,7 +99,6 @@ func (bm *BackendManager) AddBox(box *BoxArtifact) (err error) {
 	return
 }
 
-// TODO: Want this to call Backend.DeleteBoxFile also
 func (bm *BackendManager) DeleteBox(params CatalogQueryParams) (err error) {
 	var (
 		catalog       Catalog

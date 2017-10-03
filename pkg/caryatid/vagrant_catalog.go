@@ -162,27 +162,32 @@ func (c *Catalog) AddBox(artifact *BoxArtifact) (err error) {
 }
 
 // parseVersionQueryString parses a semver query string
-// The string must be a valid semantic version string, optionally preceded by one of < > <= or >=
-// TODO: Return a VersionComparator? Would have to extend VersionComparator to have GreaterThanOrEquals and LessThanOrEquals.
-func parseVersionQueryString(semver string) (version ComparableVersion, qualifier string, err error) {
+// The string must be a valid semantic version string, optionally preceded by a qualifier - one of < > <= or >=
+// If a semver doesn't have a qualifier, such as "1.0.0", return BOTH VersionEquals and VersionEqualsPrereleaseMismatch
+// However, if the semver has an equals qualifier, like "=1.0.0", return ONLY VersionEquals
+func parseVersionQueryString(semver string) (version ComparableVersion, qualifier VersionComparatorList, err error) {
 	if len(semver) == 0 {
 		return
 	}
 
-	for _, prefix := range []string{">", "<", ">=", "<=", "="} {
+	// WARNING: The two-character prefixes must come first!
+	for _, prefix := range []string{">=", "<=", ">", "<", "="} {
 		if strings.HasPrefix(semver, prefix) {
-			qualifier = prefix
-			version, err = NewComparableVersion(semver[len(prefix):])
+			if qualifier, err = NewVersionComparator(prefix); err != nil {
+				return
+			}
+			if version, err = NewComparableVersion(semver[len(prefix):]); err != nil {
+				log.Printf("FAILING HERE: %v, %v, %v\n%v\n", semver, prefix, qualifier, err)
+				return
+			}
+			break
 		}
 	}
-	if qualifier == "" {
-		version, err = NewComparableVersion(semver)
-	}
-
-	if err == nil {
-		log.Printf("Parsed version query string '%v' into a version '%v' and a qualifier '%v'\n", semver, version, qualifier)
-	} else {
-		log.Printf("Error trying to create a ComparableVersion from input '%v': %v", semver, err)
+	if len(qualifier) == 0 {
+		qualifier = VersionComparatorList{VersionEquals, VersionEqualsPrereleaseMismatch}
+		if version, err = NewComparableVersion(semver); err != nil {
+			return
+		}
 	}
 
 	return
@@ -199,45 +204,33 @@ func (catalog *Catalog) QueryCatalogVersions(versionquery string) (result Catalo
 	var (
 		comparator VersionComparator
 		cVers      ComparableVersion
-		pVers      ComparableVersion
-		pVersQual  string
+		queryVers  ComparableVersion
+		queryQual  VersionComparatorList
 	)
 	result.Name = catalog.Name
 	result.Description = catalog.Description
-	pVers, pVersQual, err = parseVersionQueryString(versionquery)
-	if err != nil {
+	if queryVers, queryQual, err = parseVersionQueryString(versionquery); err != nil {
 		return
-	} else if len(pVers.Version) == 0 {
+	} else if len(queryVers.Version) == 0 {
 		result = *catalog
 		return
 	}
+
+	// If the user has provided an *exact* version like "=1.0.0",
+	// assume they do NOT want to find prerelease-mismatched versions;
+	// If the user has provided a version *range* like "<=1.0.0",
+	// assume they DO want to find prerelease-mismatched versions.
+	if queryQual.Contains(VersionComparatorList{VersionEquals}) && len(queryQual) > 1 {
+		queryQual = append(queryQual, VersionEqualsPrereleaseMismatch)
+	}
+
 	for _, version := range catalog.Versions {
 		if cVers, err = NewComparableVersion(version.Version); err != nil {
 			return
 		}
-		comparator = cVers.Compare(&pVers)
+		comparator = cVers.Compare(&queryVers)
 
-		if pVersQual == "<" && comparator == VersionLessThan {
-			result.Versions = append(result.Versions, version)
-
-		} else if pVersQual == "<=" && (comparator == VersionLessThan || comparator == VersionEquals || comparator == VersionEqualsPrereleaseMismatch) {
-			// Return prerelease-mismatched versions for <=
-			result.Versions = append(result.Versions, version)
-
-		} else if pVersQual == ">" && comparator == VersionGreaterThan {
-			result.Versions = append(result.Versions, version)
-
-		} else if pVersQual == ">=" && (comparator == VersionGreaterThan || comparator == VersionEquals || comparator == VersionEqualsPrereleaseMismatch) {
-			// Return prerelease-mismatched versions for >=
-			result.Versions = append(result.Versions, version)
-
-		} else if pVersQual == "=" && comparator == VersionEquals {
-			// If the versionquery qualifier is '=', return only an *exact* match
-			result.Versions = append(result.Versions, version)
-
-		} else if pVersQual == "" && (comparator == VersionEquals || comparator == VersionEqualsPrereleaseMismatch) {
-			// If the versionquery qualifier is left off, but a version is passed,
-			// return the version if it is an exact or prerelease-mismatched match
+		if queryQual.Contains(VersionComparatorList{comparator}) {
 			result.Versions = append(result.Versions, version)
 		}
 	}

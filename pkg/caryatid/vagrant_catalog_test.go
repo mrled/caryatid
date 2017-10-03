@@ -281,9 +281,9 @@ func TestQueryCatalogVersions(t *testing.T) {
 	testQueryVers := func(initial *Catalog, query string, expectedResult *Catalog) {
 		result, err := initial.QueryCatalogVersions(query)
 		if err != nil {
-			t.Fatalf("QueryCatalogVersions() returned an error: %v\n", err)
+			t.Fatalf("QueryCatalogVersions(%v) returned an error: %v\n", query, err)
 		} else if !expectedResult.Equals(&result) {
-			t.Fatalf("QueryCatalogVersions() returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", result, expectedResult)
+			t.Fatalf("QueryCatalogVersions(%v) returned unexpected value(s). Actual:\n%v\nExpected:\n%v\n", query, result, expectedResult)
 		}
 	}
 

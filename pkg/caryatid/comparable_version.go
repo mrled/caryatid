@@ -25,6 +25,25 @@ const (
 	VersionGreaterThan              VersionComparator = iota
 )
 
+type VersionComparatorList []VersionComparator
+
+func (list1 *VersionComparatorList) Contains(list2 VersionComparatorList) bool {
+	for _, cv2 := range list2 {
+
+		contained := false
+		for _, cv1 := range *list1 {
+			if cv1 == cv2 {
+				contained = true
+			}
+		}
+
+		if !contained {
+			return false
+		}
+	}
+	return true
+}
+
 // ComparableVersion represents a semantic version
 // It holds an array of ints representing the version, and a string representing the prerelease tag
 // Example semantic version 1.5.3-BETA: ComparableVersion{[]int{1, 5, 3} "BETA"}
@@ -56,6 +75,26 @@ func NewComparableVersion(semver string) (cvers ComparableVersion, err error) {
 			return
 		}
 		cvers.Version = append(cvers.Version, int(component))
+	}
+	return
+}
+
+// NewVersionComparator returns a new VersionComparator from a comparator string
+// Input may be one of < > = <= >=
+func NewVersionComparator(compstring string) (comparators VersionComparatorList, err error) {
+	switch compstring {
+	case "<":
+		comparators = VersionComparatorList{VersionLessThan}
+	case ">":
+		comparators = VersionComparatorList{VersionGreaterThan}
+	case "=":
+		comparators = VersionComparatorList{VersionEquals}
+	case "<=":
+		comparators = VersionComparatorList{VersionEquals, VersionLessThan}
+	case ">=":
+		comparators = VersionComparatorList{VersionEquals, VersionGreaterThan}
+	default:
+		err = fmt.Errorf("Invalid comparator string '%v'\n", compstring)
 	}
 	return
 }
