@@ -74,6 +74,19 @@ More specific / smaller items than the roadmap in the readme.
     which I have come to loathe.
     Maybe someone ported Python's `argparse`?
 
+ *  Get a handle on logging
+
+    1)  Support logging to a file
+
+    2)  Maybe add debug logging? 
+        There's lots of bullshit in the logs that end users will absolutely not care about
+
+    3)  Definitely add verbose logging,
+        controllable via a commandline flag
+
+    4)  How should it be handled in the Packer plugin?
+        Does Packer have a logging system it wants you to use?
+
 ## Far future
 
 Not sure how feasible this stuff is, but it's on my mind
