@@ -59,9 +59,8 @@ func TestShowAction(t *testing.T) {
 
 		boxName         = "TestShowActionBox"
 		boxDesc         = "TestShowActionBox Description"
-		catalogRootPath = integrationTestDir
-		catalogPath     = path.Join(catalogRootPath, fmt.Sprintf("%v.json", boxName))
-		catalogRootUri  = fmt.Sprintf("file://%v", catalogRootPath)
+		catalogPath     = path.Join(integrationTestDir, fmt.Sprintf("%v.json", boxName))
+		catalogUri  = fmt.Sprintf("file://%v", catalogPath)
 	)
 
 	catalog := caryatid.Catalog{
@@ -94,7 +93,7 @@ func TestShowAction(t *testing.T) {
 		t.Fatalf("Error trying to write catalog: %v\n", err)
 	}
 
-	result, err = showAction(catalogRootUri, boxName)
+	result, err = showAction(catalogUri)
 	if err != nil {
 		t.Fatalf("showAction() error: %v\n", err)
 	}
@@ -135,8 +134,8 @@ func TestAddAction(t *testing.T) {
 		boxDesc        = "TestAddActionBox is a test box"
 		boxVersion     = "1.6.3"
 		boxVersion2    = "2.0.1"
-		catalogRootUri = fmt.Sprintf("file://%v", integrationTestDir)
 		catalogPath    = path.Join(integrationTestDir, fmt.Sprintf("%v.json", boxName))
+		catalogUri = fmt.Sprintf("file://%v", catalogPath)
 	)
 
 	if err = caryatid.CreateTestBoxFile(boxPath, boxProvider, true); err != nil {
@@ -144,7 +143,7 @@ func TestAddAction(t *testing.T) {
 	}
 
 	// Test adding to an empty catalog
-	err = addAction(boxPath, boxName, boxDesc, boxVersion, catalogRootUri)
+	err = addAction(boxPath, boxName, boxDesc, boxVersion, catalogUri)
 	if err != nil {
 		t.Fatalf("addAction() failed with error: %v\n", err)
 	}
@@ -171,7 +170,7 @@ func TestAddAction(t *testing.T) {
 	}
 
 	// Test adding another box to the same, now non-empty, catalog
-	err = addAction(boxPath, boxName, boxDesc, boxVersion2, catalogRootUri)
+	err = addAction(boxPath, boxName, boxDesc, boxVersion2, catalogUri)
 	if err != nil {
 		t.Fatalf("addAction() failed with error: %v\n", err)
 	}
@@ -212,13 +211,13 @@ func TestQueryAction(t *testing.T) {
 
 		boxName        = "TestQueryActionBox"
 		boxDesc        = "TestQueryActionBox is a test box"
-		catalogRootUri = fmt.Sprintf("file://%v", integrationTestDir)
+		catalogUri = fmt.Sprintf("file://%v/%v.json", integrationTestDir, boxName)
 		digestType     = "TestQueryActionDigestType"
 		digest         = "0xB00B1E5"
 	)
 
 	// Set up manager
-	manager, err := getManager(catalogRootUri, boxName)
+	manager, err := getManager(catalogUri)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
 		return
@@ -355,7 +354,7 @@ func TestQueryAction(t *testing.T) {
 
 	for _, tc := range testCases {
 		// Join the array into a multi-line string, and add a trailing newline
-		result, err = queryAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery)
+		result, err = queryAction(catalogUri, tc.VersionQuery, tc.ProviderQuery)
 		if err != nil {
 			t.Fatalf("queryAction(*, *, '%v', '%v') returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
 		} else if !result.FuzzyEquals(&tc.ExpectedResult, fuzzyEqualsParams) {
@@ -493,11 +492,10 @@ func TestDeleteAction(t *testing.T) {
 		if err = os.MkdirAll(catalogRootPath, 0700); err != nil {
 			t.Fatalf("Error creating catalogRootPath: %v\n", err)
 		}
+		catalogUri := fmt.Sprintf("file://%v/%v.json", catalogRootPath, boxName)
 
-		catalogRootUri := fmt.Sprintf("file://%v", catalogRootPath)
-
-		// Set up manager. Do this separately each time so we can use a different catalogRootUri
-		manager, err := getManager(catalogRootUri, boxName)
+		// Set up manager. Do this separately each time so we can use a different catalogUri
+		manager, err := getManager(catalogUri)
 		if err != nil {
 			t.Fatalf("Error getting a BackendManager: %v\n", err)
 		}
@@ -517,12 +515,12 @@ func TestDeleteAction(t *testing.T) {
 			}
 		}
 
-		if err = deleteAction(catalogRootUri, boxName, tc.VersionQuery, tc.ProviderQuery); err != nil {
+		if err = deleteAction(catalogUri, tc.VersionQuery, tc.ProviderQuery); err != nil {
 			t.Fatalf("deleteAction(*, *, '%v', '%v') returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
 		}
 
 		fuzzyEqualsParams := caryatid.CatalogFuzzyEqualsParams{SkipProviderUrl: true, LogMismatch: true}
-		if result, err = queryAction(catalogRootUri, boxName, "", ""); err != nil {
+		if result, err = queryAction(catalogUri, "", ""); err != nil {
 			t.Fatalf("queryAction(*, *, '%v', '%v') returned an unexpected error: %v\n", tc.VersionQuery, tc.ProviderQuery, err)
 		} else if !result.FuzzyEquals(&tc.ExpectedResult, fuzzyEqualsParams) {
 			t.Fatalf(

@@ -15,20 +15,6 @@ More specific / smaller items than the roadmap in the readme.
     which now that I think about it may not be right either.
     Do I need to check for my own config value or something?
 
- *  Use a catalog URI rather than a catalog root URI + box name
-    
-    Currently, we rely on a CatalogRootUri like `file:///srv/vagrant` and a Name like `TestBox`,
-    and we build a catalog URI like `file:///srv/vagrant/TestBox.json` from that.
-
-    Instead, take a CatalogUri like `file:///srv/vagrant/TestBox.json`.
-    If the catalog already exists, use the name already in it;
-    if the catalog does not already exist, take the name from the catalogUri like `TestBox`.
-
-    This has the twofold benefit of
-    requiring users to supply fewer parameters,
-    and not needing Name conflict resolution
-    (what if the Name passed in by the user does not match the Name in the catalog?)
-
  *  Improve test code, especially integration test code
 
     Integration tests tend to become multi-page monstrosities.

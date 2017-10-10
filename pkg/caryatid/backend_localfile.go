@@ -26,14 +26,13 @@ type CaryatidLocalFileBackend struct {
 func (backend *CaryatidLocalFileBackend) SetManager(manager *BackendManager) (err error) {
 	backend.Manager = manager
 
-	catalogRootPath, err := getValidLocalPath(backend.Manager.VagrantCatalogRootUri)
+	backend.VagrantCatalogPath, err = getValidLocalPath(backend.Manager.CatalogUri)
 	if err != nil {
 		fmt.Printf("Error trying to parse local catalog path from URI: %v\n", err)
 		return
 	}
-	catalogFilename := fmt.Sprintf("%v.json", backend.Manager.VagrantCatalogName)
-	backend.VagrantCatalogRootPath = catalogRootPath
-	backend.VagrantCatalogPath = path.Join(catalogRootPath, catalogFilename)
+
+	backend.VagrantCatalogRootPath, _ = path.Split(backend.VagrantCatalogPath)
 
 	return
 }

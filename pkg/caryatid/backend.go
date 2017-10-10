@@ -35,15 +35,14 @@ func NewBackendFromUri(uri string) (backend CaryatidBackend, err error) {
 
 // Manages Vagrant catalogs via various backends
 type BackendManager struct {
-	VagrantCatalogRootUri string
-	VagrantCatalogName    string
+	CatalogUri string
 	Backend               CaryatidBackend
 }
 
-func NewBackendManager(catalogRootUri string, catalogName string, backend *CaryatidBackend) (bm *BackendManager) {
+// TODO: Should this also just call NewBackendFromUri()? Why split them out?
+func NewBackendManager(catalogUri string, backend *CaryatidBackend) (bm *BackendManager) {
 	bm = &BackendManager{
-		catalogRootUri,
-		catalogName,
+		catalogUri,
 		*backend,
 	}
 	bm.Backend.SetManager(bm)
@@ -76,6 +75,7 @@ func (bm *BackendManager) SaveCatalog(catalog Catalog) (err error) {
 }
 
 func (bm *BackendManager) AddBox(localPath string, name string, description string, version string, provider string, checksumType string, checksum string,) (err error) {
+
 	catalog, err := bm.GetCatalog()
 	if _, err = NewComparableVersion(version); err != nil {
 		log.Printf("AddBox(): Invalid version '%v'\n", version)
@@ -85,9 +85,7 @@ func (bm *BackendManager) AddBox(localPath string, name string, description stri
 		return
 	}
 
-	// TODO: Set a CatalogUri property of BackendManager instead
-	catalogUri := fmt.Sprintf("%v/%v.json", bm.VagrantCatalogRootUri, bm.VagrantCatalogName)
-	err = catalog.AddBox(catalogUri, name, description, version, provider, checksumType, checksum)
+	err = catalog.AddBox(bm.CatalogUri, name, description, version, provider, checksumType, checksum)
 	if err != nil {
 		log.Printf("AddBox(): Error adding box to catalog metadata object: %v\n", err)
 		return

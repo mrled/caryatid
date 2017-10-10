@@ -34,7 +34,7 @@ func TestGetManager(t *testing.T) {
 	}
 
 	for _, pair := range ioPairs {
-		_, err := getManager(pair.Input, "TestBoxName")
+		_, err := getManager(pair.Input)
 		if err == nil {
 			if pair.Output == false {
 				t.Fatalf("Getting a manager with input URI '%v' succeeded, but should have failed", pair.Input)

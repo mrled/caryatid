@@ -84,10 +84,10 @@ func main() {
 
 	switch actionFlag {
 	case "show":
-		if catalogFlag == "" || boxFlag == "" {
-			missingFlags("catalog", "box")
+		if catalogFlag == "" {
+			missingFlags("catalog")
 		}
-		result, err = showAction(catalogFlag, boxFlag)
+		result, err = showAction(catalogFlag)
 		fmt.Printf("%v\n", result)
 	case "create-test-box":
 		if boxFlag == "" || providerFlag == "" {
@@ -100,17 +100,22 @@ func main() {
 		}
 		err = addAction(boxFlag, nameFlag, descriptionFlag, versionFlag, catalogFlag)
 	case "query":
-		if catalogFlag == "" || nameFlag == "" {
-			missingFlags("catalog", "name")
+		if catalogFlag == "" {
+			missingFlags("catalog")
 		}
 		var resultCata caryatid.Catalog
-		resultCata, err = queryAction(catalogFlag, nameFlag, versionFlag, providerFlag)
+		resultCata, err = queryAction(catalogFlag, versionFlag, providerFlag)
 		fmt.Printf(resultCata.DisplayString())
 	case "delete":
-		if catalogFlag == "" || nameFlag == "" {
-			missingFlags("catalog", "name")
+		if catalogFlag == "" {
+			missingFlags("catalog")
 		}
-		err = deleteAction(catalogFlag, nameFlag, versionFlag, providerFlag)
+		if versionFlag == "" && providerFlag == "" {
+			fmt.Printf("ERROR: without passing -version or -provider, you will delete the entire catalog!\n\n")
+			cFlag.Usage()
+			os.Exit(1)
+		}
+		err = deleteAction(catalogFlag, versionFlag, providerFlag)
 	default:
 		fmt.Printf("Unknown (or missing) -action: '%v'\n", actionFlag)
 		cFlag.Usage()

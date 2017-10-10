@@ -24,6 +24,10 @@ import (
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 
+	// The URI for a Vagrant catalog
+	// This is decoded separately by each backend
+	CatalogUri string `mapstructure:"catalog_uri"`
+	
 	// A name for the Vagrant box
 	Name string `mapstructure:"name"`
 
@@ -32,11 +36,6 @@ type Config struct {
 
 	// A short description for the Vagrant box
 	Description string `mapstructure:"description"`
-
-	// The root URI for a Vagrant catalog
-	// This is decoded separately by each backend
-	// If the catalog URL is file:///tmp/mybox.json, CatalogRootUri is "file:///tmp" (and the Name is "mybox")
-	CatalogRootUri string `mapstructure:"catalog_root_uri"`
 
 	// Whether to keep the input artifact
 	KeepInputArtifact bool `mapstructure:"keep_input_artifact"`
@@ -63,8 +62,8 @@ func (pp *CaryatidPostProcessor) Configure(raws ...interface{}) error {
 	if pp.config.Version == "" {
 		return fmt.Errorf("Version required")
 	}
-	if pp.config.CatalogRootUri == "" {
-		return fmt.Errorf("CatalogRoot required")
+	if pp.config.CatalogUri == "" {
+		return fmt.Errorf("CatalogUri required")
 	}
 
 	return nil
@@ -81,12 +80,12 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	}
 
 	var backend caryatid.CaryatidBackend
-	backend, err = caryatid.NewBackendFromUri(pp.config.CatalogRootUri)
+	backend, err = caryatid.NewBackendFromUri(pp.config.CatalogUri)
 	if err != nil {
 		log.Printf("PostProcess(): Error trying to get backend: %v\n", err)
 		return
 	}
-	manager := caryatid.NewBackendManager(pp.config.CatalogRootUri, pp.config.Name, &backend)
+	manager := caryatid.NewBackendManager(pp.config.CatalogUri, &backend)
 
 	err = manager.AddBox(inBoxFile, pp.config.Name, pp.config.Description, pp.config.Version, provider, digestType, digest)
 	if err != nil {
@@ -103,7 +102,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	log.Printf("PostProcess(): New catalog is:\n%v\n", catalog)
 
 	packerArtifact = &CaryatidOutputArtifact{
-		CatalogUri: fmt.Sprintf("%v/%v.json", pp.config.CatalogRootUri, pp.config.Name),
+		CatalogUri: fmt.Sprintf("%v/%v.json", pp.config.CatalogUri, pp.config.Name),
 		Description: pp.config.Description,
 		Version: pp.config.Version,
 		Provider: provider ,

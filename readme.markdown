@@ -48,15 +48,13 @@ There are five configuration parameters:
     - Sometimes, it makes sense to set this based on the date; setting the version to `"1.0.{{isotime \"20060102150405\"}}"` will result in a version number of 1.0.YYYYMMDDhhmmss
     - This can be especially useful during development, so that you don't have to pass an ever-incrementing version number variable to `packer build`
     - See the `isotime` global function in the [packer documentation for configuration templates](https://www.packer.io/docs/templates/configuration-templates.html) for more information
-- `catalog_root_url` (required): A `file://` URL for the directory containing the catalog
-    - If there is a catalog at `/srv/vagrant/boxname.json`, this should be set to `file:///srv/vagrant`
-    - Caryatid assumes the catalog name is always just `<box name>.json`
-    - This is designed so that you might have many catalogs that share the same `catalog_root_url`; as long as the box names are different, they won't step on each other
+- `catalog_url` (required): A URL for the directory containing the catalog
+    - Note that Caryatid assumes the catalog name is always just `<box name>.json`
     - See the "Output and directory structure" section for more information
+    - Interpreted individually by each backend
 - `keep_input_artifact` (optional): Keep a copy of the Vagrant box at whatever location the Vagrant post-processor stored its output
     - By default, input artifacts are deleted; this suppresses that behavior, and will result in two copies of the Vagrant box on your filesystem - one where the Vagrant post-processor was configured to store its output, and one where Caryatid will copy it
 - `backend`: The name of the backend to use. Currently only `file` and `s3` are supported
-- `catalog_root_uri`: The URI of the backend. Interpreted individually by each backend
 
 That might look like this:
 
@@ -64,7 +62,7 @@ That might look like this:
       "boxname": "wintriallab-win10-32",
       "version": "1.0.{{isotime \"20060102150405\"}}",
       "description": "Windows Trial Lab: Windows 10 x86",
-      "catalog_root_url": "file://{{env `HOME`}}"
+      "catalog_url": "file://{{env `HOME`}}/wintriallab-win10-32.json"
     },
     ...<snip>...
     "post-processors": [
@@ -75,7 +73,7 @@ That might look like this:
           "name": "{{user `boxname`}}",
           "version": "{{user `version`}}",
           "description": "{{user `description`}}",
-          "catalog_root_url": "{{user `catalog_root_url`}}"
+          "catalog_url": "{{user `catalog_url`}}"
         }
       ]
     ]

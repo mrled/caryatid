@@ -24,15 +24,15 @@ func convertLocalPathToUri(path string) (uri string, err error) {
 	return
 }
 
-func getManager(catalogRootUri string, boxName string) (manager *caryatid.BackendManager, err error) {
+func getManager(catalogUri string) (manager *caryatid.BackendManager, err error) {
 	var uri string
-	if testValidUri(catalogRootUri) {
-		uri = catalogRootUri
+	if testValidUri(catalogUri) {
+		uri = catalogUri
 	} else {
 		// Handle a special case where the -catalog is a local path, rather than a file:// URI
-		uri, err = convertLocalPathToUri(catalogRootUri)
+		uri, err = convertLocalPathToUri(catalogUri)
 		if err != nil {
-			log.Printf("Error converting catalog path '%v' to URI: %v", catalogRootUri, err)
+			log.Printf("Error converting catalog path '%v' to URI: %v", catalogUri, err)
 			return
 		}
 	}
@@ -44,12 +44,12 @@ func getManager(catalogRootUri string, boxName string) (manager *caryatid.Backen
 		return
 	}
 
-	manager = caryatid.NewBackendManager(uri, boxName, &backend)
+	manager = caryatid.NewBackendManager(uri, &backend)
 	return
 }
 
-func showAction(catalogRootUri string, boxName string) (result string, err error) {
-	manager, err := getManager(catalogRootUri, boxName)
+func showAction(catalogUri string) (result string, err error) {
+	manager, err := getManager(catalogUri)
 	if err != nil {
 		return "", err
 	}
@@ -72,14 +72,14 @@ func createTestBoxAction(boxName string, providerName string) (err error) {
 	return
 }
 
-func addAction(boxPath string, boxName string, boxDescription string, boxVersion string, catalogRootUri string) (err error) {
+func addAction(boxPath string, boxName string, boxDescription string, boxVersion string, catalogUri string) (err error) {
 	// TODO: Reduce code duplication between here and packer-post-processor-caryatid
 	digestType, digest, provider, err := caryatid.DeriveArtifactInfoFromBoxFile(boxPath)
 	if err != nil {
 		panic(fmt.Sprintf("Could not determine artifact info: %v", err))
 	}
 
-	manager, err := getManager(catalogRootUri, boxName)
+	manager, err := getManager(catalogUri)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
 		return
@@ -102,8 +102,8 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 	return
 }
 
-func queryAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (result caryatid.Catalog, err error) {
-	manager, err := getManager(catalogRootUri, boxName)
+func queryAction(catalogUri string, versionQuery string, providerQuery string) (result caryatid.Catalog, err error) {
+	manager, err := getManager(catalogUri)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
 		return
@@ -125,8 +125,8 @@ func queryAction(catalogRootUri string, boxName string, versionQuery string, pro
 	return
 }
 
-func deleteAction(catalogRootUri string, boxName string, versionQuery string, providerQuery string) (err error) {
-	manager, err := getManager(catalogRootUri, boxName)
+func deleteAction(catalogUri string, versionQuery string, providerQuery string) (err error) {
+	manager, err := getManager(catalogUri)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
 		return

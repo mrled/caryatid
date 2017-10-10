@@ -22,6 +22,8 @@ type CaryatidS3Backend struct {
 	S3Downloader *s3manager.Downloader
 	S3Uploader   *s3manager.Uploader
 	Manager      *BackendManager
+
+	CatalogLocation *caryatidS3Location
 }
 
 type caryatidS3Location struct {
@@ -29,7 +31,7 @@ type caryatidS3Location struct {
 	Resource string
 }
 
-func (backend *CaryatidS3Backend) uri2location(uri string) (loc *caryatidS3Location, err error) {
+func uri2s3location(uri string) (loc *caryatidS3Location, err error) {
 	s3Regex := regexp.MustCompile("^s3://([a-zA-Z0-9\\-_]+)/(.*)")
 	result := s3Regex.FindAllStringSubmatch(uri, -1)
 
@@ -46,11 +48,6 @@ func (backend *CaryatidS3Backend) uri2location(uri string) (loc *caryatidS3Locat
 	return
 }
 
-func (backend *CaryatidS3Backend) getCatalogLocation() (loc *caryatidS3Location, err error) {
-	loc, err = backend.uri2location(backend.Manager.VagrantCatalogRootUri)
-	return
-}
-
 func (backend *CaryatidS3Backend) SetManager(manager *BackendManager) (err error) {
 	backend.Manager = manager
 
@@ -60,6 +57,11 @@ func (backend *CaryatidS3Backend) SetManager(manager *BackendManager) (err error
 	backend.S3service = s3.New(backend.AwsSession)
 	backend.S3Downloader = s3manager.NewDownloader(backend.AwsSession)
 	backend.S3Uploader = s3manager.NewUploader(backend.AwsSession)
+
+	backend.CatalogLocation, err = uri2s3location(backend.Manager.CatalogUri)
+	if err != nil {
+		return
+	}
 
 	return
 }
@@ -73,18 +75,12 @@ func (backend *CaryatidS3Backend) GetManager() (manager *BackendManager, err err
 }
 
 func (backend *CaryatidS3Backend) GetCatalogBytes() (catalogBytes []byte, err error) {
-	cataLoc, err := backend.getCatalogLocation()
-	if err != nil {
-		log.Printf("CaryatidS3Backend.GetCatalogBytes(): Could not get catalog location: %v", err)
-		return
-	}
-
 	dlBuffer := &aws.WriteAtBuffer{}
 	_, err = backend.S3Downloader.Download(
 		dlBuffer,
 		&s3.GetObjectInput{
-			Bucket: aws.String(cataLoc.Bucket),
-			Key:    aws.String(cataLoc.Resource),
+			Bucket: aws.String(backend.CatalogLocation.Bucket),
+			Key:    aws.String(backend.CatalogLocation.Resource),
 		},
 	)
 	if err != nil {
@@ -97,15 +93,9 @@ func (backend *CaryatidS3Backend) GetCatalogBytes() (catalogBytes []byte, err er
 }
 
 func (backend *CaryatidS3Backend) SetCatalogBytes(serializedCatalog []byte) (err error) {
-	cataLoc, err := backend.getCatalogLocation()
-	if err != nil {
-		log.Printf("CaryatidS3Backend.SetCatalogBytes(): Could not get catalog location: %v", err)
-		return
-	}
-
 	upParams := &s3manager.UploadInput{
-		Bucket: aws.String(cataLoc.Bucket),
-		Key:    aws.String(cataLoc.Resource),
+		Bucket: aws.String(backend.CatalogLocation.Bucket),
+		Key:    aws.String(backend.CatalogLocation.Resource),
 		Body:   bytes.NewReader(serializedCatalog),
 	}
 

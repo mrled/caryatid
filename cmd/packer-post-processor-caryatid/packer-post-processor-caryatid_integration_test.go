@@ -69,7 +69,7 @@ func TestPostProcess(t *testing.T) {
 		inkeepinput          = false
 	)
 
-	pp.config.CatalogRootUri = fmt.Sprintf("file://%v", integrationTestDir)
+	pp.config.CatalogUri = fmt.Sprintf("file://%v/%v.json", integrationTestDir, testBoxName)
 	pp.config.Description = "Test box description"
 	pp.config.KeepInputArtifact = inkeepinput
 	pp.config.Name = testBoxName
