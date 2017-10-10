@@ -81,7 +81,6 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	}
 
 	boxArtifact := caryatid.BoxArtifact{
-		inBoxFile,
 		pp.config.Name,
 		pp.config.Description,
 		pp.config.Version,
@@ -90,7 +89,6 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		digestType,
 		digest,
 	}
-	packerArtifact = &boxArtifact
 
 	var backend caryatid.CaryatidBackend
 	backend, err = caryatid.NewBackendFromUri(pp.config.CatalogRootUri)
@@ -100,7 +98,7 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	}
 	manager := caryatid.NewBackendManager(pp.config.CatalogRootUri, pp.config.Name, &backend)
 
-	err = manager.AddBox(&boxArtifact)
+	err = manager.AddBox(inBoxFile, &boxArtifact)
 	if err != nil {
 		log.Printf("PostProcess(): Error adding box metadata to catalog: %v\n", err)
 		return
@@ -113,6 +111,15 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		return
 	}
 	log.Printf("PostProcess(): New catalog is:\n%v\n", catalog)
+
+	packerArtifact = &CaryatidOutputArtifact{
+		CatalogUri: fmt.Sprintf("%v/%v.json", pp.config.CatalogRootUri, pp.config.Name),
+		Description: pp.config.Description,
+		Version: pp.config.Version,
+		Provider: provider ,
+		ChecksumType: digestType,
+		Checksum: digest,
+	}
 
 	return
 }

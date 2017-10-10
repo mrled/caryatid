@@ -6,7 +6,6 @@ import (
 
 func TestBoxArtifactEquals(t *testing.T) {
 	a1 := BoxArtifact{
-		"/tmp/path/to/example.box",
 		"ExampleBox",
 		"ExampleBox description",
 		"192.168.0.1",
@@ -16,7 +15,6 @@ func TestBoxArtifactEquals(t *testing.T) {
 		"0xDECAFBAD",
 	}
 	a2 := BoxArtifact{
-		"/tmp/path/to/example.box",
 		"ExampleBox",
 		"ExampleBox description",
 		"192.168.0.1",
@@ -26,7 +24,6 @@ func TestBoxArtifactEquals(t *testing.T) {
 		"0xDECAFBAD",
 	}
 	a3 := BoxArtifact{
-		"DIFFERENT/tmp/path/to/example.box",
 		"DIFFERENTExampleBox",
 		"DIFFERENTExampleBox description",
 		"DIFFERENT192.168.0.1",

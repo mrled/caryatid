@@ -236,15 +236,15 @@ func TestQueryAction(t *testing.T) {
 	// Now copy those boxes multiple times to the Catalog,
 	// as if they were different versions each time
 	for _, version := range boxVersions1 {
-		boxArtifact = caryatid.BoxArtifact{Path: boxPath1, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider1, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
-		if err = manager.AddBox(&boxArtifact); err != nil {
+		boxArtifact = caryatid.BoxArtifact{Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider1, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
+		if err = manager.AddBox(boxPath1, &boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
 		}
 	}
 	for _, version := range boxVersions2 {
-		boxArtifact = caryatid.BoxArtifact{Path: boxPath2, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider2, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
-		if err = manager.AddBox(&boxArtifact); err != nil {
+		boxArtifact = caryatid.BoxArtifact{Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider2, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
+		if err = manager.AddBox(boxPath2, &boxArtifact); err != nil {
 			t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 			return
 		}
@@ -509,15 +509,15 @@ func TestDeleteAction(t *testing.T) {
 		// Now copy the input boxes multiple times to the Catalog,
 		// as if they were different versions each time
 		for _, version := range boxVersions1 {
-			boxArtifact = caryatid.BoxArtifact{Path: boxPath1, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider1, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
-			if err = manager.AddBox(&boxArtifact); err != nil {
+			boxArtifact = caryatid.BoxArtifact{Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider1, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
+			if err = manager.AddBox(boxPath1, &boxArtifact); err != nil {
 				t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 				return
 			}
 		}
 		for _, version := range boxVersions2 {
-			boxArtifact = caryatid.BoxArtifact{Path: boxPath2, Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider2, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
-			if err = manager.AddBox(&boxArtifact); err != nil {
+			boxArtifact = caryatid.BoxArtifact{Name: boxName, Description: boxDesc, Version: version, Provider: boxProvider2, CatalogRootUri: catalogRootUri, ChecksumType: digestType, Checksum: digest}
+			if err = manager.AddBox(boxPath2, &boxArtifact); err != nil {
 				t.Fatalf("Error adding box metadata to catalog: %v\n", err)
 				return
 			}

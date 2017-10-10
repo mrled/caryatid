@@ -122,7 +122,7 @@ func (backend *CaryatidS3Backend) SetCatalogBytes(serializedCatalog []byte) (err
 	return
 }
 
-func (backend *CaryatidS3Backend) CopyBoxFile(box *BoxArtifact) (err error) {
+func (backend *CaryatidS3Backend) CopyBoxFile(path string, box *BoxArtifact) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }

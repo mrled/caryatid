@@ -75,7 +75,7 @@ func (backend *CaryatidLocalFileBackend) SetCatalogBytes(serializedCatalog []byt
 	return
 }
 
-func (backend *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err error) {
+func (backend *CaryatidLocalFileBackend) CopyBoxFile(path string, box *BoxArtifact) (err error) {
 
 	remoteBoxPath, err := getValidLocalPath(box.GetUri())
 	if err != nil {
@@ -95,12 +95,12 @@ func (backend *CaryatidLocalFileBackend) CopyBoxFile(box *BoxArtifact) (err erro
 		return
 	}
 
-	written, err := util.CopyFile(box.Path, remoteBoxPath)
+	written, err := util.CopyFile(path, remoteBoxPath)
 	if err != nil {
-		log.Println(fmt.Sprintf("Error trying to copy '%v' to '%v' file: %v", box.Path, remoteBoxPath, err))
+		log.Println(fmt.Sprintf("Error trying to copy '%v' to '%v' file: %v", path, remoteBoxPath, err))
 		return
 	}
-	log.Println(fmt.Sprintf("Copied %v bytes from original path at '%v' to new location at '%v'", written, box.Path, remoteBoxPath))
+	log.Printf("Copied %v bytes from original path at '%v' to new location at '%v'\n", written, path, remoteBoxPath)
 	return
 }
 

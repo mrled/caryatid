@@ -40,7 +40,7 @@ func (cb *CaryatidTestBackend) SetCatalogBytes(serializedCatalog []byte) (err er
 	return nil
 }
 
-func (cb *CaryatidTestBackend) CopyBoxFile(box *BoxArtifact) error {
+func (cb *CaryatidTestBackend) CopyBoxFile(path string, box *BoxArtifact) error {
 	return nil
 }
 
@@ -58,8 +58,8 @@ func TestCaryatidTestBackend_ImplementsCaryatidBackend(t *testing.T) {
 
 func TestBackendManagerConfigure(t *testing.T) {
 	cataRootUri := "http://example.com/cata"
+	boxPath := "/tmp/path/to/example.box"
 	testBox := BoxArtifact{
-		"/tmp/path/to/example.box",
 		"ExampleBox",
 		"ExampleBox description",
 		"192.168.0.1",
@@ -82,7 +82,7 @@ func TestBackendManagerConfigure(t *testing.T) {
 	expectedCata := Catalog{
 		testBox.Name, testBox.Description, []Version{
 			Version{testBox.Version, []Provider{
-				Provider{testBox.Provider, testBox.Path, testBox.ChecksumType, testBox.Checksum},
+				Provider{testBox.Provider, boxPath, testBox.ChecksumType, testBox.Checksum},
 			}},
 		},
 	}

@@ -75,7 +75,7 @@ func (bm *BackendManager) SaveCatalog(catalog Catalog) (err error) {
 	return
 }
 
-func (bm *BackendManager) AddBox(box *BoxArtifact) (err error) {
+func (bm *BackendManager) AddBox(path string, box *BoxArtifact) (err error) {
 	catalog, err := bm.GetCatalog()
 	if _, err = NewComparableVersion(box.Version); err != nil {
 		log.Printf("AddBox(): Invalid version '%v'\n", box.Version)
@@ -92,7 +92,7 @@ func (bm *BackendManager) AddBox(box *BoxArtifact) (err error) {
 		log.Printf("AddBox(): Error saving catalog: %v\n", err)
 		return
 	}
-	if err = bm.Backend.CopyBoxFile(box); err != nil {
+	if err = bm.Backend.CopyBoxFile(path, box); err != nil {
 		log.Printf("AddBox(): Error copying box file: %v\n", err)
 		return
 	}
@@ -153,7 +153,7 @@ type CaryatidBackend interface {
 	SetCatalogBytes([]byte) error
 
 	// Copy the Vagrant box to the location referenced in the Vagrant catalog
-	CopyBoxFile(*BoxArtifact) error
+	CopyBoxFile(string, *BoxArtifact) error
 
 	// Delete a file with a given URI
 	// If the URI's .Scheme doesn't match the value of .Scheme(), error
@@ -192,7 +192,7 @@ func (backend *CaryatidBaseBackend) SetCatalogBytes(serializedCatalog []byte) (e
 	return
 }
 
-func (backend *CaryatidBaseBackend) CopyBoxFile(box *BoxArtifact) (err error) {
+func (backend *CaryatidBaseBackend) CopyBoxFile(path string, box *BoxArtifact) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }

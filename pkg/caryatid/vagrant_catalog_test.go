@@ -118,7 +118,6 @@ func TestCatalogEquals(t *testing.T) {
 }
 
 func TestCatalogAddBox(t *testing.T) {
-	addBoxSrcPath := "/packer/output/packer-TESTBOX-PROVIDER.box"
 	addBoxName := "TESTBOX"
 	addBoxDesc := "This is a description of TESTBOX"
 	addBoxVers := "2.4.9"
@@ -128,7 +127,7 @@ func TestCatalogAddBox(t *testing.T) {
 	addBoxCheckType := "CHECKSUMTYPE"
 	addBoxChecksum := "0xDECAFBAD"
 
-	bxArt := BoxArtifact{addBoxSrcPath, addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCataRoot, addBoxCheckType, addBoxChecksum}
+	bxArt := BoxArtifact{addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCataRoot, addBoxCheckType, addBoxChecksum}
 
 	addAndCompareCata := func(description string, initial *Catalog, expected *Catalog, addition *BoxArtifact) {
 		if err := initial.AddBox(addition); err != nil {

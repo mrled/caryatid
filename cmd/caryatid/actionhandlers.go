@@ -80,14 +80,13 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 	}
 
 	boxArtifact := caryatid.BoxArtifact{
-		boxPath,
-		boxName,
-		boxDescription,
-		boxVersion,
-		provider,
-		catalogRootUri,
-		digestType,
-		digest,
+		Name:           boxName,
+		Description:    boxDescription,
+		Version:        boxVersion,
+		Provider:       provider,
+		CatalogRootUri: catalogRootUri,
+		ChecksumType:   digestType,
+		Checksum:       digest,
 	}
 
 	manager, err := getManager(catalogRootUri, boxName)
@@ -96,7 +95,7 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 		return
 	}
 
-	err = manager.AddBox(&boxArtifact)
+	err = manager.AddBox(boxPath, &boxArtifact)
 	if err != nil {
 		log.Printf("Error adding box metadata to catalog: %v\n", err)
 		return

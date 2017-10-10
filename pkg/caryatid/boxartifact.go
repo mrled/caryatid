@@ -9,11 +9,7 @@ import (
 	"fmt"
 )
 
-const BuilderId = "com.micahrl.caryatid"
-
 type BoxArtifact struct {
-	// The *local* path for the box - not the final path after we copy the box to the server, but where the artifact is right now
-	Path string
 	// The box name, like "win10x64"
 	Name string
 	// A box description, like "Windows 10, 64-bit"
@@ -30,28 +26,8 @@ type BoxArtifact struct {
 	Checksum string
 }
 
-func (*BoxArtifact) BuilderId() string {
-	return BuilderId
-}
-
-func (bxart *BoxArtifact) Files() []string {
-	return nil
-}
-
-func (bxart *BoxArtifact) Id() string {
-	return fmt.Sprintf("%s/%s/%s", bxart.Name, bxart.Provider, bxart.Version)
-}
-
 func (artifact *BoxArtifact) String() string {
 	return fmt.Sprintf("%v/%v v%v %v:%v (%v)", artifact.Name, artifact.Provider, artifact.Version, artifact.ChecksumType, artifact.Checksum, artifact.Description)
-}
-
-func (*BoxArtifact) State(name string) interface{} {
-	return nil
-}
-
-func (art *BoxArtifact) Destroy() error {
-	return nil
 }
 
 func (artifact *BoxArtifact) GetParentUri() string {
@@ -69,8 +45,7 @@ func (ba1 *BoxArtifact) Equals(ba2 *BoxArtifact) bool {
 	if ba1 == ba2 {
 		return true
 	}
-	return (ba1.Path == ba2.Path &&
-		ba1.Name == ba2.Name &&
+	return (ba1.Name == ba2.Name &&
 		ba1.Description == ba2.Description &&
 		ba1.Version == ba2.Version &&
 		ba1.Provider == ba2.Provider &&
