@@ -75,32 +75,35 @@ func (backend *CaryatidLocalFileBackend) SetCatalogBytes(serializedCatalog []byt
 	return
 }
 
-func (backend *CaryatidLocalFileBackend) CopyBoxFile(path string, box *BoxArtifact) (err error) {
+func (backend *CaryatidLocalFileBackend) CopyBoxFile(localPath string, boxName string, boxVersion string, boxProvider string) (err error) {
+	var boxUri string
 
-	remoteBoxPath, err := getValidLocalPath(box.GetUri())
+	boxUri, err = BoxUriFromCatalogUri(backend.VagrantCatalogPath, boxName, boxVersion, boxProvider)
+	if err != nil {
+		fmt.Printf("Error trying to determine box URI: %v\n", err)
+		return
+	}
+
+	remoteBoxPath, err := getValidLocalPath(boxUri)
 	if err != nil {
 		fmt.Printf("Error trying to parse local artifact path from URI: %v\n", err)
 		return
 	}
 
-	remoteBoxParentPath, err := getValidLocalPath(box.GetParentUri())
-	if err != nil {
-		fmt.Printf("Error trying to parse local artifact parent path from URI: %v\n", err)
-		return
-	}
-
+	remoteBoxParentPath, _ := path.Split(remoteBoxPath)
 	err = os.MkdirAll(remoteBoxParentPath, 0777)
 	if err != nil {
 		log.Println("Error trying to create the box directory: ", err)
 		return
 	}
+	log.Printf("Successfully created directory at %v\n", remoteBoxParentPath)
 
-	written, err := util.CopyFile(path, remoteBoxPath)
+	written, err := util.CopyFile(localPath, remoteBoxPath)
 	if err != nil {
-		log.Println(fmt.Sprintf("Error trying to copy '%v' to '%v' file: %v", path, remoteBoxPath, err))
+		log.Printf("Error trying to copy '%v' to '%v' file: %v\n", localPath, remoteBoxPath, err)
 		return
 	}
-	log.Printf("Copied %v bytes from original path at '%v' to new location at '%v'\n", written, path, remoteBoxPath)
+	log.Printf("Copied %v bytes from original path at '%v' to new location at '%v'\n", written, localPath, remoteBoxPath)
 	return
 }
 

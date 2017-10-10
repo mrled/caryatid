@@ -79,23 +79,13 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 		panic(fmt.Sprintf("Could not determine artifact info: %v", err))
 	}
 
-	boxArtifact := caryatid.BoxArtifact{
-		Name:           boxName,
-		Description:    boxDescription,
-		Version:        boxVersion,
-		Provider:       provider,
-		CatalogRootUri: catalogRootUri,
-		ChecksumType:   digestType,
-		Checksum:       digest,
-	}
-
 	manager, err := getManager(catalogRootUri, boxName)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
 		return
 	}
 
-	err = manager.AddBox(boxPath, &boxArtifact)
+	err = manager.AddBox(boxPath, boxName, boxDescription, boxVersion, provider, digestType, digest)
 	if err != nil {
 		log.Printf("Error adding box metadata to catalog: %v\n", err)
 		return

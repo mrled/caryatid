@@ -115,35 +115,54 @@ func (c1 *Catalog) Equals(c2 *Catalog) bool {
 	return true
 }
 
-// AddBox updates the Catalog to include a new BoxArtifact
+func BoxUriFromCatalogUri(catalogUri string, name string, version string, provider string) (boxUri string, err error) {
+	lastSlashIdx := strings.LastIndex(catalogUri, "/")
+	if lastSlashIdx < 0 {
+		err = fmt.Errorf("Invalid URI: %v\n", catalogUri)
+		return
+	}
+	catalogParentUri := catalogUri[0:lastSlashIdx]
+	boxUri = fmt.Sprintf("%v/%v/%v_%v_%v.box", catalogParentUri, name, name, version, provider)
+	return
+}
+
+// AddBox updates the Catalog to include a new box file
 // The artifact's Name must match the Catalog's Name, if the Catalog already exists in storage
 // However, the artifact's Description always overwrites the Catalog's Description, even if they are different
 // This minimizes painful end-of-build errors,
 // and lets the user change their mind about the wording of the description
-func (c *Catalog) AddBox(artifact *BoxArtifact) (err error) {
+func (c *Catalog) AddBox(catalogUri string, name string, description string, version string, provider string, checksumType string, checksum string) (err error) {
+	if c.Name != "" && name != "" && c.Name != name {
+		err = fmt.Errorf("Catalog.AddBox(): Catalog name '%v' does not match input name '%v'\n", c.Name, name)
+		return
+	} else if name != "" && c.Name == "" {
+		c.Name = name
+	}
 	if c.Name == "" {
-		c.Name = artifact.Name
-	} else if c.Name != artifact.Name {
-		err = fmt.Errorf("Catalog.AddBox(): Catalog name '%v' does not match artifact name '%v'", c.Name, artifact.Name)
+		err = fmt.Errorf("Catalog.AddBox(): Catalog name could not be determined\n")
+	}
+
+	c.Description = description
+
+	boxUri, err := BoxUriFromCatalogUri(catalogUri, name, version, provider)
+	if err != nil {
 		return
 	}
 
-	c.Description = artifact.Description
-
-	newProvider := Provider{artifact.Provider, artifact.GetUri(), artifact.ChecksumType, artifact.Checksum}
-	newVersion := Version{artifact.Version, []Provider{newProvider}}
+	newProvider := Provider{provider, boxUri, checksumType, checksum}
+	newVersion := Version{version, []Provider{newProvider}}
 
 	foundVersion := false
 	foundProvider := false
 
 	for vidx, _ := range c.Versions {
-		if c.Versions[vidx].Version == artifact.Version {
+		if c.Versions[vidx].Version == version {
 			foundVersion = true
 			for pidx, _ := range c.Versions[vidx].Providers {
-				if c.Versions[vidx].Providers[pidx].Name == artifact.Provider {
-					c.Versions[vidx].Providers[pidx].Url = artifact.GetUri()
-					c.Versions[vidx].Providers[pidx].ChecksumType = artifact.ChecksumType
-					c.Versions[vidx].Providers[pidx].Checksum = artifact.Checksum
+				if c.Versions[vidx].Providers[pidx].Name == provider {
+					c.Versions[vidx].Providers[pidx].Url = boxUri
+					c.Versions[vidx].Providers[pidx].ChecksumType = checksumType
+					c.Versions[vidx].Providers[pidx].Checksum = checksum
 					foundProvider = true
 					break
 				}

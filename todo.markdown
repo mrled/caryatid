@@ -4,6 +4,17 @@ More specific / smaller items than the roadmap in the readme.
 
 ## On deck
 
+ *  Make sure I'm handling KeepInputArtifact correctly
+
+    Check whether the post-processor is responsible for deleting the input file if KeepInputArtifact is not passed.
+    If so, I need to implement this.
+    If not, do nothing.
+
+    Right now, I just pass the value of KeepInputArtifact on through
+    from the input packer.Artifact in packer-post-processor-caryatid,
+    which now that I think about it may not be right either.
+    Do I need to check for my own config value or something?
+
  *  Use a catalog URI rather than a catalog root URI + box name
     
     Currently, we rely on a CatalogRootUri like `file:///srv/vagrant` and a Name like `TestBox`,
@@ -46,8 +57,9 @@ More specific / smaller items than the roadmap in the readme.
 
  *  Build a first class concept of a Vagrant Box into the Catalog
 
-    Currently, there's a BoxArtifact, which is a *packer* concept,
-    but there is no *Caryatid* concept of a box,
+    Currently, there's a CaryatidOutputArtifact,
+    which implements the *packer* concept of an *artifact*,
+    but there is no *Caryatid* concept of a *Vagrant box*,
     particularly from the perspective of the Catalog.
 
     A box would have all the properties in a Catalog,

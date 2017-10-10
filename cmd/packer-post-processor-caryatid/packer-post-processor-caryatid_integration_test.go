@@ -89,15 +89,9 @@ func TestPostProcess(t *testing.T) {
 	if keepinputresult != inkeepinput {
 		t.Fatal(fmt.Sprintf("Failed to keep input consistently"))
 	}
-	if outArt.BuilderId() != caryatid.BuilderId {
+	if outArt.BuilderId() != BuilderId {
 		t.Fatal("BuildId does not match")
 	}
-
-	// Can't test these because we aren't getting what Packer thinks is a real BoxArtifact, just a packer.Artifact
-	// testArtifactSha1Sum := "78bc8a542fa84494ff14ae412196d134c603960c"
-	// if outArt.Checksum != testArtifactSha1Sum {
-	// 	t.Fatal(fmt.Sprintf("Expected checksum of '%v' but got checksum of '%v'", testArtifactSha1Sum, outArt.Checksum))
-	// }
 
 	expectedCatalogStr := fmt.Sprintf(`{"name":"TestBoxName","description":"Test box description","versions":[{"version":"6.6.6","providers":[{"name":"TestProvider","url":"file://%v/TestBoxName/TestBoxName_6.6.6_TestProvider.box","checksum_type":"sha1","checksum":"2cca98d0ecfd03d57a3106950e14d724797f0836"}]}]}`, integrationTestDir)
 	resultCatalogPath := path.Join(integrationTestDir, fmt.Sprintf("%v.json", testBoxName))

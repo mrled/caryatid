@@ -40,7 +40,7 @@ func (cb *CaryatidTestBackend) SetCatalogBytes(serializedCatalog []byte) (err er
 	return nil
 }
 
-func (cb *CaryatidTestBackend) CopyBoxFile(path string, box *BoxArtifact) error {
+func (cb *CaryatidTestBackend) CopyBoxFile(path string, boxName string, boxVersion string, boxProvider string) error {
 	return nil
 }
 
@@ -59,30 +59,28 @@ func TestCaryatidTestBackend_ImplementsCaryatidBackend(t *testing.T) {
 func TestBackendManagerConfigure(t *testing.T) {
 	cataRootUri := "http://example.com/cata"
 	boxPath := "/tmp/path/to/example.box"
-	testBox := BoxArtifact{
-		"ExampleBox",
-		"ExampleBox description",
-		"192.168.0.1",
-		"ExampleProvider",
-		cataRootUri,
-		"sha1",
-		"0xDECAFBAD",
-	}
+	boxName := "ExampleBox"
+	boxDesc := "ExampleBox description"
+	boxVersion := "192.168.0.1"
+	boxProvider := "ExampleProvider"
+	boxDigestType := "sha1"
+	boxDigest := "0xDECAFBAD"
+
 	var backend CaryatidBackend = &CaryatidTestBackend{}
-	manager := NewBackendManager(cataRootUri, testBox.Name, &backend)
+	manager := NewBackendManager(cataRootUri, boxName, &backend)
 
 	if manager.VagrantCatalogRootUri != cataRootUri {
 		t.Fatal("VagrantCatalogRootUri property not set correctly")
 	}
 
-	if manager.VagrantCatalogName != testBox.Name {
+	if manager.VagrantCatalogName != boxName {
 		t.Fatal("VagrantCatalogName property not set properly")
 	}
 
 	expectedCata := Catalog{
-		testBox.Name, testBox.Description, []Version{
-			Version{testBox.Version, []Provider{
-				Provider{testBox.Provider, boxPath, testBox.ChecksumType, testBox.Checksum},
+		boxName, boxDesc, []Version{
+			Version{boxVersion, []Provider{
+				Provider{boxProvider, boxPath, boxDigestType, boxDigest},
 			}},
 		},
 	}

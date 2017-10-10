@@ -51,11 +51,6 @@ func (backend *CaryatidS3Backend) getCatalogLocation() (loc *caryatidS3Location,
 	return
 }
 
-func (backend *CaryatidS3Backend) getBoxLocation(boxart *BoxArtifact) (loc *caryatidS3Location, err error) {
-	loc, err = backend.uri2location(boxart.GetUri())
-	return
-}
-
 func (backend *CaryatidS3Backend) SetManager(manager *BackendManager) (err error) {
 	backend.Manager = manager
 
@@ -122,7 +117,7 @@ func (backend *CaryatidS3Backend) SetCatalogBytes(serializedCatalog []byte) (err
 	return
 }
 
-func (backend *CaryatidS3Backend) CopyBoxFile(path string, box *BoxArtifact) (err error) {
+func (backend *CaryatidS3Backend) CopyBoxFile(path string, boxName string, boxVersion string, boxProvider string) (err error) {
 	err = fmt.Errorf("NOT IMPLEMENTED")
 	return
 }

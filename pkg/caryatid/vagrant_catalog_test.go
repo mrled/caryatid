@@ -123,14 +123,13 @@ func TestCatalogAddBox(t *testing.T) {
 	addBoxVers := "2.4.9"
 	addBoxProv := "PROVIDER"
 	addBoxCataRoot := "file:///catalog/root"
+	addBoxCataUri := fmt.Sprintf("%v/%v.json", addBoxCataRoot, addBoxName)
 	addBoxExpectedUrl := fmt.Sprintf("%v/%v/%v_%v_%v.box", addBoxCataRoot, addBoxName, addBoxName, addBoxVers, addBoxProv)
 	addBoxCheckType := "CHECKSUMTYPE"
 	addBoxChecksum := "0xDECAFBAD"
 
-	bxArt := BoxArtifact{addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCataRoot, addBoxCheckType, addBoxChecksum}
-
-	addAndCompareCata := func(description string, initial *Catalog, expected *Catalog, addition *BoxArtifact) {
-		if err := initial.AddBox(addition); err != nil {
+	addAndCompareCata := func(description string, initial *Catalog, expected *Catalog, boxName string, boxDesc string, boxVers string, boxProv string, boxCheckType string, boxCheck string) {
+		if err := initial.AddBox(addBoxCataUri, boxName, boxDesc, boxVers, boxProv, boxCheckType, boxCheck); err != nil {
 			t.Fatal(fmt.Sprintf("Error calling AddBox in test '%v': %v", description, err))
 		}
 		if !initial.Equals(expected) {
@@ -146,7 +145,7 @@ func TestCatalogAddBox(t *testing.T) {
 				Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum},
 			}},
 		}},
-		&bxArt,
+		addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCheckType, addBoxChecksum,
 	)
 
 	addAndCompareCata(
@@ -161,7 +160,7 @@ func TestCatalogAddBox(t *testing.T) {
 				Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum},
 			}},
 		}},
-		&bxArt,
+		addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCheckType, addBoxChecksum,
 	)
 
 	addAndCompareCata(
@@ -172,7 +171,7 @@ func TestCatalogAddBox(t *testing.T) {
 				Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum},
 			}},
 		}},
-		&bxArt,
+		addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCheckType, addBoxChecksum,
 	)
 
 	addAndCompareCata(
@@ -190,7 +189,7 @@ func TestCatalogAddBox(t *testing.T) {
 				Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum},
 			}},
 		}},
-		&bxArt,
+		addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCheckType, addBoxChecksum,
 	)
 
 	addAndCompareCata(
@@ -206,7 +205,7 @@ func TestCatalogAddBox(t *testing.T) {
 				Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum},
 			}},
 		}},
-		&bxArt,
+		addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCheckType, addBoxChecksum,
 	)
 
 	addAndCompareCata(
@@ -222,7 +221,7 @@ func TestCatalogAddBox(t *testing.T) {
 				Provider{addBoxProv, addBoxExpectedUrl, addBoxCheckType, addBoxChecksum},
 			}},
 		}},
-		&bxArt,
+		addBoxName, addBoxDesc, addBoxVers, addBoxProv, addBoxCheckType, addBoxChecksum,
 	)
 }
 
