@@ -5,10 +5,6 @@ import (
 	"testing"
 )
 
-func TestCaryatidBaseBackend_ImplementsCaryatidBackend(t *testing.T) {
-	var _ CaryatidBackend = new(CaryatidBaseBackend)
-}
-
 type CaryatidTestBackend struct {
 	Manager     *BackendManager
 	CatalogData []byte
