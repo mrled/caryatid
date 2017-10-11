@@ -19,6 +19,7 @@ func NewBackend(name string) (backend CaryatidBackend, err error) {
 		backend = &CaryatidS3Backend{}
 	default:
 		err = fmt.Errorf("No known backend with name '%v'", name)
+		return
 	}
 	return
 }
@@ -29,23 +30,42 @@ func NewBackendFromUri(uri string) (backend CaryatidBackend, err error) {
 		err = fmt.Errorf("Error trying to parse URI '%v': %v\n", uri, err)
 		return
 	}
+
 	backend, err = NewBackend(u.Scheme)
+	if err != nil {
+		err = fmt.Errorf("Error getting new backend: %v\n", err)
+		return
+	}
+
 	return
 }
 
 // Manages Vagrant catalogs via various backends
 type BackendManager struct {
 	CatalogUri string
-	Backend               CaryatidBackend
+	Backend    CaryatidBackend
 }
 
 // TODO: Should this also just call NewBackendFromUri()? Why split them out?
-func NewBackendManager(catalogUri string, backend *CaryatidBackend) (bm *BackendManager) {
+func NewBackendManager(catalogUri string, backendCredential string) (bm *BackendManager, err error) {
+	var backend CaryatidBackend
+
+	backend, err = NewBackendFromUri(catalogUri)
+	if err != nil {
+		return
+	}
+
+	err = backend.SetCredential(backendCredential)
+	if err != nil {
+		return
+	}
+
 	bm = &BackendManager{
 		catalogUri,
-		*backend,
+		backend,
 	}
 	bm.Backend.SetManager(bm)
+
 	return
 }
 
@@ -74,7 +94,7 @@ func (bm *BackendManager) SaveCatalog(catalog Catalog) (err error) {
 	return
 }
 
-func (bm *BackendManager) AddBox(localPath string, name string, description string, version string, provider string, checksumType string, checksum string,) (err error) {
+func (bm *BackendManager) AddBox(localPath string, name string, description string, version string, provider string, checksumType string, checksum string) (err error) {
 
 	catalog, err := bm.GetCatalog()
 	if _, err = NewComparableVersion(version); err != nil {
@@ -148,6 +168,9 @@ type CaryatidBackend interface {
 	// So far this is only used for testing
 	GetManager() (*BackendManager, error)
 
+	// Set the credential to an internal property so the backend can use it to authenticate
+	SetCredential(string) error
+
 	// Get the raw byte value held in the Vagrant catalog
 	GetCatalogBytes() ([]byte, error)
 
@@ -182,6 +205,10 @@ func (backend *CaryatidBaseBackend) GetManager() (manager *BackendManager, err e
 		err = fmt.Errorf("The Manager property was not set")
 	}
 	return
+}
+
+func (backend *CaryatidBaseBackend) SetCredential(backendCredential string) (err error) {
+	err = fmt.Errorf("NOT IMPLEMENTED")
 }
 
 func (backend *CaryatidBaseBackend) GetCatalogBytes() (catalogBytes []byte, err error) {

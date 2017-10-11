@@ -27,6 +27,13 @@ func (cb *CaryatidTestBackend) GetManager() (manager *BackendManager, err error)
 	return
 }
 
+func (cb *CaryatidTestBackend) SetCredential(backendCredential string) (err error) {
+	if backendCredential != "" {
+		err = fmt.Errorf("This backend does not support credentials")
+	}
+	return
+}
+
 func (cb *CaryatidTestBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
 	catalogBytes = cb.CatalogData
 	if len(catalogBytes) == 0 {

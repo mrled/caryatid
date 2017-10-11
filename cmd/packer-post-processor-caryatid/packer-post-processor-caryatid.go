@@ -27,6 +27,9 @@ type Config struct {
 	// The URI for a Vagrant catalog
 	// This is decoded separately by each backend
 	CatalogUri string `mapstructure:"catalog_uri"`
+
+	// Credential for the backend
+	BackendCredential string `mapstructure:"backend_credential"`
 	
 	// A name for the Vagrant box
 	Name string `mapstructure:"name"`
@@ -79,13 +82,12 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 		return
 	}
 
-	var backend caryatid.CaryatidBackend
-	backend, err = caryatid.NewBackendFromUri(pp.config.CatalogUri)
+	var manager caryatid.BackendManager
+	manager, err = caryatid.NewBackendManager(pp.config.CatalogUri, pp.config.BackendCredential)
 	if err != nil {
-		log.Printf("PostProcess(): Error trying to get backend: %v\n", err)
+		log.Printf("PostProcess(): Error trying to create backend manager: %v\n", err)
 		return
 	}
-	manager := caryatid.NewBackendManager(pp.config.CatalogUri, &backend)
 
 	err = manager.AddBox(inBoxFile, pp.config.Name, pp.config.Description, pp.config.Version, provider, digestType, digest)
 	if err != nil {

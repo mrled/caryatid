@@ -24,6 +24,7 @@ var (
 	descriptionFlag string
 	providerFlag    string
 	nameFlag        string
+	credentialFlag string
 )
 
 func init() {
@@ -60,6 +61,9 @@ func init() {
 	cFlag.StringVar(
 		&nameFlag, "name", "",
 		"The name of the box tracked in the Vagrant catalog. When deleting a box, this restricts the query to only boxes matching this name, and may include asterisks for globbing. When adding a box, globbing is not supported and an asterisk will be interpreted literally.")
+	cFlag.StringVar(
+		&credentialFlag, "credential", "",
+		"A credential to pass to the backend. See the documentation for your backend to determine the correct format for these credentials.")
 }
 
 func main() {
@@ -87,7 +91,7 @@ func main() {
 		if catalogFlag == "" {
 			missingFlags("catalog")
 		}
-		result, err = showAction(catalogFlag)
+		result, err = showAction(catalogFlag, credentialFlag)
 		fmt.Printf("%v\n", result)
 	case "create-test-box":
 		if boxFlag == "" || providerFlag == "" {
@@ -98,7 +102,7 @@ func main() {
 		if boxFlag == "" || nameFlag == "" || descriptionFlag == "" || versionFlag == "" || catalogFlag == "" {
 			missingFlags("box", "name", "description", "version", "catalog")
 		}
-		err = addAction(boxFlag, nameFlag, descriptionFlag, versionFlag, catalogFlag)
+		err = addAction(boxFlag, nameFlag, descriptionFlag, versionFlag, catalogFlag, credentialFlag)
 	case "query":
 		if catalogFlag == "" {
 			missingFlags("catalog")
@@ -115,7 +119,7 @@ func main() {
 			cFlag.Usage()
 			os.Exit(1)
 		}
-		err = deleteAction(catalogFlag, versionFlag, providerFlag)
+		err = deleteAction(catalogFlag, credentialFlag, versionFlag, providerFlag)
 	default:
 		fmt.Printf("Unknown (or missing) -action: '%v'\n", actionFlag)
 		cFlag.Usage()

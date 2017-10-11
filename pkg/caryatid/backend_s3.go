@@ -18,7 +18,7 @@ import (
 
 type CaryatidS3Backend struct {
 	AwsSession   *session.Session
-	S3service    *s3.S3
+	S3Service    *s3.S3
 	S3Downloader *s3manager.Downloader
 	S3Uploader   *s3manager.Uploader
 	Manager      *BackendManager
@@ -48,13 +48,25 @@ func uri2s3location(uri string) (loc *caryatidS3Location, err error) {
 	return
 }
 
+func (backend *CaryatidS3Backend) verifyCredential() (err error) {
+	var (
+		response *s3.ListObjectsOutput
+		resperr  error
+	)
+	response, resperr = backend.S3Service.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(backend.CatalogLocation.Bucket),
+	})
+
+	return
+}
+
 func (backend *CaryatidS3Backend) SetManager(manager *BackendManager) (err error) {
 	backend.Manager = manager
 
 	backend.AwsSession = session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	backend.S3service = s3.New(backend.AwsSession)
+	backend.S3Service = s3.New(backend.AwsSession)
 	backend.S3Downloader = s3manager.NewDownloader(backend.AwsSession)
 	backend.S3Uploader = s3manager.NewUploader(backend.AwsSession)
 
@@ -71,6 +83,15 @@ func (backend *CaryatidS3Backend) GetManager() (manager *BackendManager, err err
 	if manager == nil {
 		err = fmt.Errorf("The Manager property was not set")
 	}
+	return
+}
+
+func (backend *CaryatidS3Backend) SetCredential(backendCredential string) (err error) {
+	if backendCredential == "" {
+		err = fmt.Errorf("Backend credential is empty")
+		return
+	}
+	err = backend.verifyCredential()
 	return
 }
 

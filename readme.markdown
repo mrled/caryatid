@@ -40,7 +40,7 @@ Caryatid is intended to work on any platform that Packer supports, but gets some
 
 In your packerfile, you must add it as a post-processor in a *series*, and coming after a vagrant post-processor (because caryatid requires Vagrant boxes to come in as artifacts).
 
-There are five configuration parameters:
+These are the configuration parameters
 
 - `name` (required): The name of the box.
 - `description` (required): A longer description for the box
@@ -51,10 +51,11 @@ There are five configuration parameters:
 - `catalog_url` (required): A URL for the directory containing the catalog
     - Note that Caryatid assumes the catalog name is always just `<box name>.json`
     - See the "Output and directory structure" section for more information
-    - Interpreted individually by each backend
+    - Determines the backend to use. See [Backends](#backends) for a list of supported backends and their URI schems
 - `keep_input_artifact` (optional): Keep a copy of the Vagrant box at whatever location the Vagrant post-processor stored its output
     - By default, input artifacts are deleted; this suppresses that behavior, and will result in two copies of the Vagrant box on your filesystem - one where the Vagrant post-processor was configured to store its output, and one where Caryatid will copy it
-- `backend`: The name of the backend to use. Currently only `file` and `s3` are supported
+- `backend_credential` (optional): A credential for the backend
+    - Each backend interprets this differently; see [Backends](#backends) for more details
 
 That might look like this:
 
@@ -88,13 +89,16 @@ See the [official post-processor documentation](https://www.packer.io/docs/templ
 
 ## Backends
 
-- LocalFile:
-    - Requires URIs like `file:///path/to/somewhere` on Unix, or `file:///C:\\path\\to\\somewhere` on Windows
-    - Files created with the LocalFile backend conform to OS default permissions. On Unix, this means it honors `umask`; on Windows, this means it inherits directory permissions. When modifying a file, such as adding a box to an existing catalog, permissions of the existing file are not changed.
-- S3:
-    - Requires URIs like `s3://bucket/key`, where `key` may include a directory name, e.g. in `s3://bucket/some/sub/path`, `some/sub/path` is the `key`. These URIs are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin and may be used in Vagrant files where that plugin is installed
-    - Note that HTTP URIs like `http://s3.amazonaws.com/bucket/resource` are not supported, even though they are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin.
-    - S3 permissions are not modified
+ -  LocalFile:
+     -  Requires URIs like `file:///path/to/somewhere` on Unix, or `file:///C:\\path\\to\\somewhere` on Windows
+     -  Files created with the LocalFile backend conform to OS default permissions. On Unix, this means it honors `umask`; on Windows, this means it inherits directory permissions. When modifying a file, such as adding a box to an existing catalog, permissions of the existing file are not changed.
+     -  Does not use `backend_credential`
+ -  S3:
+     -  Requires URIs like `s3://bucket/key`, where `key` may include a directory name, e.g. in `s3://bucket/some/sub/path`, `some/sub/path` is the `key`. These URIs are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin and may be used in Vagrant files where that plugin is installed
+     -  Note that HTTP URIs like `http://s3.amazonaws.com/bucket/resource` are not supported, even though they are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin.
+     -  S3 permissions are not modified; it uses the existing permissions for the S3 bucket
+     -  This backend uses the official AWS Go API, and [per documentation](http://docs.aws.amazon.com/sdk-for-go/api/aws/session/) will read credentials from `~/.aws/credentials` or `~/.aws/config` (in that order).
+     -  Alternatively, you may pass `backend_credential` in the form `AWS_ACCESS_KEY:AWS_SECRET_KEY` - that is, the access key, then a colon (`:`), then the secret key.
 
 ## Output and directory structure
 

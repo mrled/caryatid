@@ -4,16 +4,9 @@ More specific / smaller items than the roadmap in the readme.
 
 ## On deck
 
- *  Make sure I'm handling KeepInputArtifact correctly
+ *  Is it a URL or a URI or what
 
-    Check whether the post-processor is responsible for deleting the input file if KeepInputArtifact is not passed.
-    If so, I need to implement this.
-    If not, do nothing.
-
-    Right now, I just pass the value of KeepInputArtifact on through
-    from the input packer.Artifact in packer-post-processor-caryatid,
-    which now that I think about it may not be right either.
-    Do I need to check for my own config value or something?
+    Like, get some consistency here, damn
 
  *  Improve test code, especially integration test code
 

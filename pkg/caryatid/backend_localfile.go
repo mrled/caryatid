@@ -45,6 +45,13 @@ func (cb *CaryatidLocalFileBackend) GetManager() (manager *BackendManager, err e
 	return
 }
 
+func (cb *CaryatidLocalFileBackend) SetCredential(backendCredential string) (err error) {
+	if backendCredential != "" {
+		err = fmt.Errorf("This backend does not support credentials")
+	}
+	return
+}
+
 func (backend *CaryatidLocalFileBackend) GetCatalogBytes() (catalogBytes []byte, err error) {
 	catalogBytes, err = ioutil.ReadFile(backend.VagrantCatalogPath)
 	if os.IsNotExist(err) {

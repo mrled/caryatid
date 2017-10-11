@@ -24,7 +24,7 @@ func convertLocalPathToUri(path string) (uri string, err error) {
 	return
 }
 
-func getManager(catalogUri string) (manager *caryatid.BackendManager, err error) {
+func getManager(catalogUri string, backendCredential string) (manager *caryatid.BackendManager, err error) {
 	var uri string
 	if testValidUri(catalogUri) {
 		uri = catalogUri
@@ -38,17 +38,16 @@ func getManager(catalogUri string) (manager *caryatid.BackendManager, err error)
 	}
 	log.Printf("Using catalog URI of '%v'", uri)
 
-	backend, err := caryatid.NewBackendFromUri(uri)
+	manager, err = caryatid.NewBackendManager(uri, backendCredential)
 	if err != nil {
-		log.Printf("Error retrieving backend: %v\n", err)
+		log.Printf("Error creating backend manager: %v\n", err)
 		return
 	}
 
-	manager = caryatid.NewBackendManager(uri, &backend)
 	return
 }
 
-func showAction(catalogUri string) (result string, err error) {
+func showAction(catalogUri string, backendCredential string) (result string, err error) {
 	manager, err := getManager(catalogUri)
 	if err != nil {
 		return "", err
@@ -72,7 +71,7 @@ func createTestBoxAction(boxName string, providerName string) (err error) {
 	return
 }
 
-func addAction(boxPath string, boxName string, boxDescription string, boxVersion string, catalogUri string) (err error) {
+func addAction(boxPath string, boxName string, boxDescription string, boxVersion string, catalogUri string, backendCredential string) (err error) {
 	// TODO: Reduce code duplication between here and packer-post-processor-caryatid
 	digestType, digest, provider, err := caryatid.DeriveArtifactInfoFromBoxFile(boxPath)
 	if err != nil {
@@ -102,7 +101,7 @@ func addAction(boxPath string, boxName string, boxDescription string, boxVersion
 	return
 }
 
-func queryAction(catalogUri string, versionQuery string, providerQuery string) (result caryatid.Catalog, err error) {
+func queryAction(catalogUri string, backendCredential string, versionQuery string, providerQuery string) (result caryatid.Catalog, err error) {
 	manager, err := getManager(catalogUri)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
@@ -125,7 +124,7 @@ func queryAction(catalogUri string, versionQuery string, providerQuery string) (
 	return
 }
 
-func deleteAction(catalogUri string, versionQuery string, providerQuery string) (err error) {
+func deleteAction(catalogUri string, backendCredential string, versionQuery string, providerQuery string) (err error) {
 	manager, err := getManager(catalogUri)
 	if err != nil {
 		log.Printf("Error getting a BackendManager")
