@@ -80,22 +80,48 @@ That might look like this:
 
 ### Note: post-processor series
 
-See the double open square brackets (`[`) after `"post-processors":`? The first square bracket indicates the start of the `post-processors` section; the second indicates the start of a post-processor sequence, where artifacts from the previous post-processor are fed as input into the next.
+See the double open square brackets (`[`) after `"post-processors":`?
+The first square bracket indicates the start of the `post-processors` section;
+the second indicates the start of a post-processor sequence,
+where artifacts from the previous post-processor are fed as input into the next.
 
-If you don't define a sequence using that extra set of square brackets, but instead just place the vagrant and caryatid entries in the `post-processors` section directly, the vagrant post-processor will run with inputs from the builder, and then caryatid post-processor will run afterwards also with inputs from the builder, rather than with inputs from the vagrant post-processor.
+If you don't define a sequence using that extra set of square brackets,
+but instead just place the vagrant and caryatid entries in the `post-processors` section directly,
+the vagrant post-processor will run with inputs from the builder,
+and then caryatid post-processor will run afterwards also with inputs from the builder,
+rather than with inputs from the vagrant post-processor.
 
 See the [official post-processor documentation](https://www.packer.io/docs/templates/post-processors.html) for more details on sequences.
 
 ## Backends
 
  -  LocalFile:
-     -  Requires URIs like `file:///path/to/somewhere` on Unix, or `file:///C:\\path\\to\\somewhere` on Windows
-     -  Files created with the LocalFile backend conform to OS default permissions. On Unix, this means it honors `umask`; on Windows, this means it inherits directory permissions. When modifying a file, such as adding a box to an existing catalog, permissions of the existing file are not changed.
+     -  Requires URIs like `file:///path/to/somewhere` on Unix,
+        or `file:///C:\\path\\to\\somewhere` on Windows
+     -  Files created with the LocalFile backend conform to OS default permissions.
+        On Unix, this means it honors `umask`;
+        on Windows, this means it inherits directory permissions.
+        When modifying a file, such as adding a box to an existing catalog,
+        permissions of the existing file are not changed.
  -  S3:
-     -  Requires URIs like `s3://bucket/key`, where `key` may include a directory name, e.g. in `s3://bucket/some/sub/path`, `some/sub/path` is the `key`. These URIs are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin and may be used in Vagrant files where that plugin is installed
-     -  Note that HTTP URIs like `http://s3.amazonaws.com/bucket/resource` are not supported, even though they are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin.
+     -  Requires URIs like `s3://bucket/key`,
+        where `key` may include a directory name,
+        e.g. in `s3://bucket/some/sub/path`,
+        `some/sub/path` is the `key`
+        These URIs are supported by the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin
+        and may be used in Vagrant files where that plugin is installed
+     -  Note that HTTP URIs like `http://s3.amazonaws.com/bucket/resource`
+        are not supported,
+        even though they are supported by
+        the [vagrant-s3auth](https://github.com/WhoopInc/vagrant-s3auth) plugin.
      -  S3 permissions are not modified
-     -  Requires credentials and a default region set in `~/.aws/credentials` and `~/.aws/config` respectively. The easiest way to do this is to [install the AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) and run `aws configure`, making sure to provide responses for `AWS Access Key ID`, `AWS Secret Access Key`, and `Default region name` when prompted.
+     -  Requires credentials and a default region set in `~/.aws/credentials` and `~/.aws/config` respectively.
+        The easiest way to do this is to
+        [install the AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
+        and run `aws configure`,
+        making sure to provide responses for `AWS Access Key ID`,
+        `AWS Secret Access Key`,
+        and `Default region name` when prompted.
 
 ## Output and directory structure
 
