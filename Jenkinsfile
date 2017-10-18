@@ -12,11 +12,9 @@ node() {
 
     stage('Build, test, and buildrelease') {
         docker.image("golang:1.9-alpine").inside("-v ${pwd()}:${projGoSubpath}") {
-            for (command in binaryBuildCommands) {
-                sh "cd ${projGoSubpath} && go build ./..."
-                sh "cd ${projGoSubpath} && go test ./..."
-                sh "cd ${projGoSubpath} && go run scripts/buildrelease.go -version ${version}"
-            }
+            sh "cd ${projGoSubpath} && go build ./..."
+            sh "cd ${projGoSubpath} && go test ./..."
+            sh "cd ${projGoSubpath} && go run scripts/buildrelease.go -version ${version}"
         }
     }
 
