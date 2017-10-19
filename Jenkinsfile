@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-node() {
+node {
     // TODO: Set version from a file committed to Git?
     String version = "2.0.${env.BUILD_NUMBER}"
     // TODO: Is there a way to derive this automatically?
