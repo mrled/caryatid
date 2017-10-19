@@ -5,7 +5,9 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            checkout scm
+            steps {
+                checkout scm
+            }
         }
         stage('2. ... fuckin where am i') {
             steps {
