@@ -14,6 +14,12 @@ node() {
         docker.image("golang:1.9-alpine").inside("-v ${pwd()}:${projGoSubpath}") {
             sh "echo projGoSubpath: ${projGoSubpath}. Contents:"
             sh "ls ${projGoSubpath}"
+            sh "echo :Contents"
+            sh "echo GOPATH: $GOPATH"
+            sh "echo GOROOT: $GOROOT"
+            sh "echo /go Contents:"
+            sh "ls -R /go"
+            sh "echo :Contents"
             sh "cd ${projGoSubpath} && go build ./..."
             sh "cd ${projGoSubpath} && go test ./..."
             sh "cd ${projGoSubpath} && go run scripts/buildrelease.go -version ${version}"
