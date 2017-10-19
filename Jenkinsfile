@@ -10,6 +10,11 @@ node() {
         checkout scm
     }
 
+    stage('... fuckin where am i') {
+        sh "printf pwd: \$(pwd)"
+        sh "printf contents: \$(ls -R)"
+    }
+
     stage('Build, test, and buildrelease') {
         docker.image("golang:1.9-alpine").inside("-v ${pwd()}:${projGoSubpath}") {
             sh "echo projGoSubpath: ${projGoSubpath}. Contents:"
