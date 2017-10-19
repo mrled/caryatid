@@ -6,16 +6,16 @@ node {
     // TODO: Is there a way to derive this automatically?
     String projGoSubpath = "/go/src/github.com/mrled/caryatid"
 
-    stage('Checkout from GitHub') {
+    stage('1. Checkout from GitHub') {
         checkout scm
     }
 
-    stage('... fuckin where am i') {
+    stage('2. ... fuckin where am i') {
         sh "printf pwd: \$(pwd)"
         sh "printf contents: \$(ls -R)"
     }
 
-    stage('Build, test, and buildrelease') {
+    stage('3. Build, test, and buildrelease') {
         docker.image("golang:1.9-alpine").inside("-v ${pwd()}:${projGoSubpath}") {
             sh "echo projGoSubpath: ${projGoSubpath}. Contents:"
             sh "ls ${projGoSubpath}"
@@ -33,7 +33,7 @@ node {
 
     // TODO: Upload to GitHub automatically if we are building a commit with a version tag like vX.Y.Z(-PRERELEASETAG)?
 
-    stage("Archive artifacts") {
+    stage("4. Archive artifacts") {
         archiveArtifacts artifacts: 'release/**', fingerprint: true
     }
 }
