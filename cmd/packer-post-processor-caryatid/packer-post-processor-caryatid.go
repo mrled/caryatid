@@ -27,7 +27,7 @@ type Config struct {
 	// The URI for a Vagrant catalog
 	// This is decoded separately by each backend
 	CatalogUri string `mapstructure:"catalog_uri"`
-	
+
 	// A name for the Vagrant box
 	Name string `mapstructure:"name"`
 
@@ -102,12 +102,12 @@ func (pp *CaryatidPostProcessor) PostProcess(ui packer.Ui, artifact packer.Artif
 	log.Printf("PostProcess(): New catalog is:\n%v\n", catalog)
 
 	packerArtifact = &CaryatidOutputArtifact{
-		CatalogUri: fmt.Sprintf("%v/%v.json", pp.config.CatalogUri, pp.config.Name),
-		Description: pp.config.Description,
-		Version: pp.config.Version,
-		Provider: provider ,
+		CatalogUri:   fmt.Sprintf("%v/%v.json", pp.config.CatalogUri, pp.config.Name),
+		Description:  pp.config.Description,
+		Version:      pp.config.Version,
+		Provider:     provider,
 		ChecksumType: digestType,
-		Checksum: digest,
+		Checksum:     digest,
 	}
 
 	return

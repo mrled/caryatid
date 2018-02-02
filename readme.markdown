@@ -16,6 +16,10 @@ Caryatid is intended to work on any platform that Packer supports, but gets some
 
 ## Building and installing
 
+ -  Ensure that the `$GOROOT` and `$GOPATH` variables are set for your shell, and that the `bin/` subdirectories of those locations are in your `$PATH`. Attempting to build the code without this will fail.
+
+ -  The best way to get this code is to `go get github.com/mrled/caryatid`, and then find it in `$GOPATH/src/github.com/mrled/caryatid`. Attempting to build the code outside of `$GOPATH` fails.
+
  -  Build the binaries by changing to `./cmd/<projectname>` and running `go build`
 
     Building this way will result in a binary being built in the same directory
@@ -48,7 +52,7 @@ There are five configuration parameters:
     - Sometimes, it makes sense to set this based on the date; setting the version to `"1.0.{{isotime \"20060102150405\"}}"` will result in a version number of 1.0.YYYYMMDDhhmmss
     - This can be especially useful during development, so that you don't have to pass an ever-incrementing version number variable to `packer build`
     - See the `isotime` global function in the [packer documentation for configuration templates](https://www.packer.io/docs/templates/configuration-templates.html) for more information
-- `catalog_url` (required): A URL for the directory containing the catalog
+- `catalog_uri` (required): A URL for the directory containing the catalog
     - Note that Caryatid assumes the catalog name is always just `<box name>.json`
     - See the "Output and directory structure" section for more information
     - Interpreted individually by each backend
@@ -62,7 +66,7 @@ That might look like this:
       "boxname": "wintriallab-win10-32",
       "version": "1.0.{{isotime \"20060102150405\"}}",
       "description": "Windows Trial Lab: Windows 10 x86",
-      "catalog_url": "file://{{env `HOME`}}/wintriallab-win10-32.json"
+      "catalog_uri": "file://{{env `HOME`}}/wintriallab-win10-32.json"
     },
     ...<snip>...
     "post-processors": [
@@ -73,7 +77,7 @@ That might look like this:
           "name": "{{user `boxname`}}",
           "version": "{{user `version`}}",
           "description": "{{user `description`}}",
-          "catalog_url": "{{user `catalog_url`}}"
+          "catalog_uri": "{{user `catalog_uri`}}"
         }
       ]
     ]
