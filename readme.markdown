@@ -8,8 +8,8 @@ In the future, it will support remote catalogs, like scp, as well.
 
 ## Prerequisites
 
-- Go
-- Packer
+- Go 1.11 or higher
+- Packer 1.3.1 or higher
 - Disk space to keep (large) Vagrant box files
 
 Caryatid is intended to work on any platform that Packer supports, but gets somewhat less testing on Windows. If you find something that's broken, please open an issue.
@@ -19,6 +19,12 @@ Caryatid is intended to work on any platform that Packer supports, but gets some
  -  Ensure that the `$GOROOT` and `$GOPATH` variables are set for your shell, and that the `bin/` subdirectories of those locations are in your `$PATH`. Attempting to build the code without this will fail.
 
  -  The best way to get this code is to `go get github.com/mrled/caryatid`, and then find it in `$GOPATH/src/github.com/mrled/caryatid`. Attempting to build the code outside of `$GOPATH` fails.
+
+ -  Install prerequisites:
+
+        go get -u github.com/hashicorp/packer/
+        go get -u github.com/aws/aws-sdk-go
+        go get -u golang.org/x/tools/cmd/stringer
 
  -  Build the binaries by changing to `./cmd/<projectname>` and running `go build`
 
@@ -30,11 +36,11 @@ Caryatid is intended to work on any platform that Packer supports, but gets some
 
     A packer plugin such as `cmd/packer-post-processor-caryatid` must be copied to `~/.packer.d/plugins` or `%APPDATA%\packer.d\plugins`; see also the [official plugins documentation](https://www.packer.io/docs/extend/plugins.html)
 
- -  Build all projects with `go generate ./... && go build ./...` in the root directory
+ -  Build all projects with `go build ./...` in the root directory
 
     Note that this immediately throws away the resulting binaries, and is intended just for testing that the build succeeds
 
- -  Test all projects with `go generate ./... && go test ./...` in the root directory
+ -  Test all projects with `go test ./...` in the root directory
 
  -  Build all architectures for a release with `go run scripts/buildrelease.go`
 
