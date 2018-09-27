@@ -58,7 +58,7 @@ There are five configuration parameters:
     - Sometimes, it makes sense to set this based on the date; setting the version to `"1.0.{{isotime \"20060102150405\"}}"` will result in a version number of 1.0.YYYYMMDDhhmmss
     - This can be especially useful during development, so that you don't have to pass an ever-incrementing version number variable to `packer build`
     - See the `isotime` global function in the [packer documentation for configuration templates](https://www.packer.io/docs/templates/configuration-templates.html) for more information
-- `catalog_uri` (required): A URL for the directory containing the catalog
+- `catalog_root_url` (required): The root URL for the catalog
     - Note that Caryatid assumes the catalog name is always just `<box name>.json`
     - See the "Output and directory structure" section for more information
     - Interpreted individually by each backend
@@ -72,7 +72,7 @@ That might look like this:
       "boxname": "wintriallab-win10-32",
       "version": "1.0.{{isotime \"20060102150405\"}}",
       "description": "Windows Trial Lab: Windows 10 x86",
-      "catalog_uri": "file://{{env `HOME`}}/wintriallab-win10-32.json"
+      "catalog_root_url": "file://{{env `HOME`}}"
     },
     ...<snip>...
     "post-processors": [
@@ -83,7 +83,7 @@ That might look like this:
           "name": "{{user `boxname`}}",
           "version": "{{user `version`}}",
           "description": "{{user `description`}}",
-          "catalog_uri": "{{user `catalog_uri`}}"
+          "catalog_root_url": "{{user `catalog_root_url`}}"
         }
       ]
     ]
@@ -135,7 +135,7 @@ See the [official post-processor documentation](https://www.packer.io/docs/templ
 
 ## Output and directory structure
 
-Using a destination of `/srv/vagrant`, a box name of `testbox`, and trying to add a Virtualbox edition of that box at version 1.0.0 would result in a directory structure like this:
+Using a catalog root URL of `file:///srv/vagrant`, a box name of `testbox`, and trying to add a Virtualbox edition of that box at version 1.0.0 would result in a directory structure like this:
 
     /srv/vagrant
         /testbox.json: the JSON catalog
